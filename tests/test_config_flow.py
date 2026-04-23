@@ -195,6 +195,8 @@ async def test_bluetooth_discovery_prefills_manual_setup(
             data=discovery,
         )
         assert result["type"] == "menu"
+        assert result["step_id"] == "user"
+        assert result["menu_options"] == ["cloud", "manual"]
         progress = hass.config_entries.flow.async_get(result["flow_id"])
         assert progress["context"]["title_placeholders"]["name"] == (
             f"Airbnk lock {fixture['lock_sn'][:9]}"

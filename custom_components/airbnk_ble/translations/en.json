@@ -3,6 +3,12 @@
   "config": {
     "flow_title": "{name}",
     "step": {
+      "user": {
+        "menu_options": {
+          "cloud": "Connect with Airbnk cloud",
+          "manual": "Enter bootstrap values manually"
+        }
+      },
       "cloud": {
         "title": "Connect to Airbnk cloud",
         "description": "Use the Airbnk or WeHere account email that can access this lock. The mobile app may sign out when the same account is reused.",
