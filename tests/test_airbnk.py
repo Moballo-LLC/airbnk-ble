@@ -5,13 +5,17 @@ from __future__ import annotations
 from custom_components.airbnk_ble.airbnk import (
     battery_profile_from_legacy_thresholds,
     build_entry_data,
+    build_entry_options,
     calculate_battery_percentage,
     decrypt_bootstrap,
     generate_operation_code,
+    migrate_legacy_entry,
     migrate_legacy_entry_data,
     parse_advertisement_data,
     parse_status_response,
+    validate_entry,
     validate_entry_data,
+    validate_entry_options,
 )
 from custom_components.airbnk_ble.profiles import BatteryBreakpoint
 
@@ -48,7 +52,6 @@ def test_bootstrap_can_be_decrypted_and_stored_without_raw_secrets() -> None:
     )
 
     entry_data = build_entry_data(
-        name="Front Gate",
         mac_address="AA:BB:CC:DD:EE:FF",
         bootstrap=bootstrap,
         battery_profile=[
@@ -61,6 +64,7 @@ def test_bootstrap_can_be_decrypted_and_stored_without_raw_secrets() -> None:
 
     assert "app_key" not in entry_data
     assert "new_sninfo" not in entry_data
+    assert "name" not in entry_data
 
     normalized, validated_bootstrap = validate_entry_data(entry_data)
 
@@ -106,8 +110,15 @@ def test_legacy_entry_data_migrates_without_changing_b100_curve() -> None:
 
     migrated = migrate_legacy_entry_data(legacy_data)
     normalized, bootstrap = validate_entry_data(legacy_data)
+    migrated_data, migrated_options = migrate_legacy_entry(legacy_data, {})
+    normalized_data, normalized_options, _validated_bootstrap = validate_entry(
+        legacy_data,
+        {},
+    )
 
     assert normalized == migrated
+    assert normalized_data == migrated_data
+    assert normalized_options == migrated_options
     assert "app_key" not in normalized
     assert "new_sninfo" not in normalized
     assert normalized["battery_profile"] == [
@@ -124,6 +135,49 @@ def test_legacy_entry_data_migrates_without_changing_b100_curve() -> None:
     )
     assert bootstrap.lock_model == fixture["lock_model"]
     assert bootstrap.manufacturer_key == fixture["manufacturer_key"]
+
+
+def test_entry_options_prefer_options_but_fall_back_to_legacy_data() -> None:
+    """Options should migrate cleanly out of older entry data."""
+
+    normalized = validate_entry_options(
+        {
+            "name": "Front Door",
+            "retry_count": 5,
+        },
+        lock_model="B100",
+        legacy_data={
+            "name": "Legacy Name",
+            "reverse_commands": True,
+            "supports_remote_lock": True,
+            "retry_count": 3,
+            "command_timeout": 20,
+            "connectivity_probe_interval": 10,
+            "unavailable_after": 120,
+        },
+    )
+
+    assert normalized["name"] == "Front Door"
+    assert normalized["retry_count"] == 5
+    assert normalized["reverse_commands"] is True
+    assert normalized["supports_remote_lock"] is True
+    assert normalized["command_timeout"] == 20
+    assert normalized["connectivity_probe_interval"] == 10
+    assert normalized["unavailable_after"] == 120
+
+
+def test_build_entry_options_normalizes_defaults_for_model() -> None:
+    """New options should validate and fill model-aware defaults."""
+
+    options = build_entry_options(
+        name="Front Gate",
+        lock_model="B100",
+    )
+
+    assert options["name"] == "Front Gate"
+    assert options["reverse_commands"] is False
+    assert options["supports_remote_lock"] is False
+    assert options["retry_count"] == 3
 
 
 def test_parsers_decode_advert_and_status_frames() -> None:

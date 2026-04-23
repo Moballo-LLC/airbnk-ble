@@ -9,6 +9,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.airbnk_ble import (
     _async_reload_entry,
+    async_remove_entry,
     async_setup,
     async_setup_entry,
     async_unload_entry,
@@ -70,6 +71,7 @@ async def test_async_setup_entry_normalizes_legacy_entry_data(
     runtime.async_start.assert_awaited_once()
     runtime_cls.assert_called_once()
     update_entry.assert_called_once()
+    assert update_entry.call_args.kwargs["options"]["name"] == "Front Gate"
     assert entry.runtime_data is runtime
 
 
@@ -97,3 +99,22 @@ async def test_async_unload_and_reload_entry_delegate_to_config_entries(
         await _async_reload_entry(hass, entry)
 
     async_reload.assert_awaited_once_with(entry.entry_id)
+
+
+async def test_async_remove_entry_triggers_bluetooth_rediscovery(
+    hass: HomeAssistant,
+) -> None:
+    """Removing an entry should allow Bluetooth discovery to fire again."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Front Gate",
+        data={"mac_address": "AA:BB:CC:DD:EE:FF"},
+    )
+
+    with patch(
+        "custom_components.airbnk_ble.bluetooth.async_rediscover_address"
+    ) as async_rediscover_address:
+        await async_remove_entry(hass, entry)
+
+    async_rediscover_address.assert_called_once_with(hass, "AA:BB:CC:DD:EE:FF")

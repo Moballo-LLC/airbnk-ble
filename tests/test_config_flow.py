@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant import config_entries
 from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.airbnk_ble.cloud_api import AirbnkCloudLock, AirbnkCloudSession
 from custom_components.airbnk_ble.const import (
@@ -69,6 +70,8 @@ async def test_manual_flow_creates_entry_without_raw_bootstrap_secrets(
         assert result["type"] == "create_entry"
         assert "app_key" not in result["data"]
         assert "new_sninfo" not in result["data"]
+        assert "name" not in result["data"]
+        assert result["options"]["name"] == "Front Gate"
 
 
 async def test_cloud_flow_prefers_matching_discovered_lock(
@@ -165,6 +168,7 @@ async def test_cloud_flow_prefers_matching_discovered_lock(
         assert result["type"] == "create_entry"
         assert result["data"][CONF_LOCK_SN] == fixture["lock_sn"]
         assert result["data"][CONF_MAC_ADDRESS] == "AA:BB:CC:DD:EE:FF"
+        assert result["options"]["name"] == "Front Gate"
 
 
 async def test_bluetooth_discovery_prefills_manual_setup(
@@ -205,3 +209,75 @@ async def test_bluetooth_discovery_prefills_manual_setup(
             if getattr(field, "schema", None) == "lock_sn"
         )
         assert lock_sn_field.default() == fixture["lock_sn"][:9]
+
+
+async def test_options_flow_updates_entry_options_without_touching_connection_data(
+    hass: HomeAssistant,
+) -> None:
+    """Runtime tuning belongs in entry options, not connection data."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Front Gate",
+        data={
+            "lock_sn": "B100LOCK00000001",
+            "lock_model": "B100",
+            "profile": "b100",
+            "mac_address": "AA:BB:CC:DD:EE:FF",
+            "manufacturer_key": "30313233343536373839414243444546",
+            "binding_key": "46454443424139383736353433323130",
+            "battery_profile": [
+                {"voltage": 2.3, "percent": 0.0},
+                {"voltage": 2.9, "percent": 100.0},
+            ],
+            "hardware_version": "",
+        },
+        options={
+            "name": "Front Gate",
+            "reverse_commands": False,
+            "supports_remote_lock": False,
+            "retry_count": 3,
+            "command_timeout": 15,
+            "connectivity_probe_interval": 0,
+            "unavailable_after": 60,
+        },
+        unique_id="B100LOCK00000001",
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "homeassistant.config_entries.async_process_deps_reqs",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    with (
+        patch(
+            "homeassistant.config_entries.async_process_deps_reqs",
+            new=AsyncMock(return_value=None),
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            AsyncMock(return_value=True),
+        ),
+    ):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "name": "Front Door",
+                "reverse_commands": True,
+                "supports_remote_lock": False,
+                "retry_count": 5,
+                "command_timeout": 20,
+                "connectivity_probe_interval": 30,
+                "unavailable_after": 120,
+            },
+        )
+
+    assert result["type"] == "create_entry"
+    assert entry.data["mac_address"] == "AA:BB:CC:DD:EE:FF"
+    assert entry.options["name"] == "Front Door"
+    assert entry.options["retry_count"] == 5
+    assert entry.title == "Front Door"

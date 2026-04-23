@@ -31,3 +31,10 @@
 - Keep the repo HACS-ready: `hacs.json`, CI, Hassfest, and secret scanning should continue to pass.
 - Update tests with behavior changes; protocol, config flow, and diagnostics coverage are all important here.
 - Small commits are fine when they help keep the refactor organized.
+
+## Home Assistant Core Path
+
+- Keep the custom integration close to Home Assistant core expectations where that does not harm HACS compatibility or the working `B100` path.
+- Prefer `ConfigEntry.data` only for connection/bootstrap material and `ConfigEntry.options` for user-tunable behavior.
+- Track core-readiness work in `custom_components/airbnk_ble/quality_scale.yaml`.
+- A future core submission still requires extracting the Airbnk communication logic into a separately published async Python library that satisfies Home Assistant dependency-transparency rules.

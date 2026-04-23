@@ -33,6 +33,7 @@ from .airbnk import (
     parse_advertisement_data,
     parse_status_response,
     split_operation_frames,
+    validate_entry_options,
 )
 from .const import (
     AIRBNK_STATUS_CHARACTERISTIC_UUID,
@@ -122,19 +123,22 @@ class AirbnkLockRuntime:
         self.hass = hass
         self.entry = entry
         self.bootstrap = bootstrap
+        options = validate_entry_options(
+            entry.options,
+            lock_model=bootstrap.lock_model,
+            legacy_data=entry.data,
+        )
         self.address = str(entry.data[CONF_MAC_ADDRESS])
         self.lock_sn = str(entry.data[CONF_LOCK_SN])
-        self.name = str(entry.data[CONF_NAME])
-        self.reverse_commands = bool(entry.data.get(CONF_REVERSE_COMMANDS, False))
-        self.supports_remote_lock = bool(
-            entry.data.get(CONF_SUPPORTS_REMOTE_LOCK, False)
-        )
-        self.retry_count = int(entry.data[CONF_RETRY_COUNT])
-        self.command_timeout = int(entry.data[CONF_COMMAND_TIMEOUT])
+        self.name = str(options[CONF_NAME])
+        self.reverse_commands = bool(options[CONF_REVERSE_COMMANDS])
+        self.supports_remote_lock = bool(options[CONF_SUPPORTS_REMOTE_LOCK])
+        self.retry_count = int(options[CONF_RETRY_COUNT])
+        self.command_timeout = int(options[CONF_COMMAND_TIMEOUT])
         self.connectivity_probe_interval = int(
-            entry.data.get(CONF_CONNECTIVITY_PROBE_INTERVAL, 0)
+            options[CONF_CONNECTIVITY_PROBE_INTERVAL]
         )
-        self.unavailable_after = int(entry.data[CONF_UNAVAILABLE_AFTER])
+        self.unavailable_after = int(options[CONF_UNAVAILABLE_AFTER])
         self.battery_profile = normalize_battery_profile(
             entry.data[CONF_BATTERY_PROFILE]
         )

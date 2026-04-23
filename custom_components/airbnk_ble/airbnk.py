@@ -13,6 +13,7 @@ from typing import Any
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from homeassistant.const import CONF_NAME
 
 from .const import (
     CONF_APP_KEY,
@@ -394,29 +395,15 @@ def decrypt_bootstrap(lock_sn: str, new_sninfo: str, app_key: str) -> BootstrapD
 
 def build_entry_data(
     *,
-    name: str | None,
     mac_address: str,
     bootstrap: BootstrapData,
     battery_profile: Sequence[BatteryBreakpoint] | Sequence[Mapping[str, float]],
-    reverse_commands: bool = DEFAULT_REVERSE_COMMANDS,
-    supports_remote_lock: bool | None = None,
-    retry_count: int = DEFAULT_RETRY_COUNT,
-    command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
-    connectivity_probe_interval: int = DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
-    unavailable_after: int = DEFAULT_UNAVAILABLE_AFTER,
     hardware_version: str | None = None,
 ) -> dict[str, Any]:
-    """Build stored config-entry data from bootstrap and user choices."""
+    """Build stored connection data from bootstrap and user choices."""
 
     model_profile = get_model_profile(bootstrap.lock_model)
     normalized_battery_profile = normalize_battery_profile(battery_profile)
-
-    resolved_name = (name or DEFAULT_NAME).strip() or DEFAULT_NAME
-    resolved_supports_remote_lock = (
-        model_profile.supports_remote_lock
-        if supports_remote_lock is None
-        else bool(supports_remote_lock)
-    )
 
     return {
         CONF_LOCK_SN: bootstrap.lock_sn,
@@ -426,19 +413,106 @@ def build_entry_data(
         CONF_MANUFACTURER_KEY: bootstrap.manufacturer_key.hex(),
         CONF_BINDING_KEY: bootstrap.binding_key.hex(),
         CONF_BATTERY_PROFILE: battery_profile_to_storage(normalized_battery_profile),
+        CONF_HARDWARE_VERSION: (hardware_version or "").strip(),
+    }
+
+
+def validate_entry_options(
+    options: Mapping[str, Any],
+    *,
+    lock_model: str,
+    legacy_data: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Normalize and validate stored entry options.
+
+    Older custom-component installs kept user-tunable settings in
+    ``ConfigEntry.data``. Continue to accept those values as a fallback so
+    upgrades keep the existing B100 behavior while moving toward the
+    data-versus-options split expected by Home Assistant core.
+    """
+
+    model_profile = get_model_profile(lock_model)
+
+    def _value(key: str, default: Any) -> Any:
+        if key in options:
+            return options[key]
+        if legacy_data is not None and key in legacy_data:
+            return legacy_data[key]
+        return default
+
+    supports_remote_lock_value: bool | None
+    if CONF_SUPPORTS_REMOTE_LOCK in options:
+        supports_remote_lock_value = options[CONF_SUPPORTS_REMOTE_LOCK]
+    elif legacy_data is not None and CONF_SUPPORTS_REMOTE_LOCK in legacy_data:
+        supports_remote_lock_value = legacy_data[CONF_SUPPORTS_REMOTE_LOCK]
+    else:
+        supports_remote_lock_value = model_profile.supports_remote_lock
+
+    retry_count = int(_value(CONF_RETRY_COUNT, DEFAULT_RETRY_COUNT))
+    command_timeout = int(_value(CONF_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT))
+    connectivity_probe_interval = int(
+        _value(
+            CONF_CONNECTIVITY_PROBE_INTERVAL,
+            DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
+        )
+    )
+    unavailable_after = int(_value(CONF_UNAVAILABLE_AFTER, DEFAULT_UNAVAILABLE_AFTER))
+
+    normalized: dict[str, Any] = {
+        CONF_NAME: str(_value(CONF_NAME, DEFAULT_NAME)).strip() or DEFAULT_NAME,
+        CONF_REVERSE_COMMANDS: bool(
+            _value(CONF_REVERSE_COMMANDS, DEFAULT_REVERSE_COMMANDS)
+        ),
+        CONF_SUPPORTS_REMOTE_LOCK: bool(supports_remote_lock_value),
+        CONF_RETRY_COUNT: retry_count,
+        CONF_COMMAND_TIMEOUT: command_timeout,
+        CONF_CONNECTIVITY_PROBE_INTERVAL: connectivity_probe_interval,
+        CONF_UNAVAILABLE_AFTER: unavailable_after,
+    }
+
+    if retry_count < 0:
+        raise AirbnkProtocolError("retry_count must be 0 or greater")
+    if command_timeout < 1:
+        raise AirbnkProtocolError("command_timeout must be at least 1 second")
+    if connectivity_probe_interval < 0:
+        raise AirbnkProtocolError("connectivity_probe_interval must be 0 or greater")
+    if unavailable_after < 1:
+        raise AirbnkProtocolError("unavailable_after must be at least 1 second")
+
+    return normalized
+
+
+def build_entry_options(
+    *,
+    name: str | None,
+    lock_model: str,
+    reverse_commands: bool = DEFAULT_REVERSE_COMMANDS,
+    supports_remote_lock: bool | None = None,
+    retry_count: int = DEFAULT_RETRY_COUNT,
+    command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
+    connectivity_probe_interval: int = DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
+    unavailable_after: int = DEFAULT_UNAVAILABLE_AFTER,
+) -> dict[str, Any]:
+    """Build stored entry options from user-tunable settings."""
+
+    raw_options: dict[str, Any] = {
+        CONF_NAME: (name or DEFAULT_NAME).strip() or DEFAULT_NAME,
         CONF_REVERSE_COMMANDS: bool(reverse_commands),
-        CONF_SUPPORTS_REMOTE_LOCK: resolved_supports_remote_lock,
         CONF_RETRY_COUNT: int(retry_count),
         CONF_COMMAND_TIMEOUT: int(command_timeout),
         CONF_CONNECTIVITY_PROBE_INTERVAL: int(connectivity_probe_interval),
         CONF_UNAVAILABLE_AFTER: int(unavailable_after),
-        CONF_HARDWARE_VERSION: (hardware_version or "").strip(),
-        "name": resolved_name,
     }
+    if supports_remote_lock is not None:
+        raw_options[CONF_SUPPORTS_REMOTE_LOCK] = bool(supports_remote_lock)
+    return validate_entry_options(raw_options, lock_model=lock_model)
 
 
-def migrate_legacy_entry_data(data: Mapping[str, Any]) -> dict[str, Any]:
-    """Convert an older local-entry format into the public storage format."""
+def migrate_legacy_entry(
+    data: Mapping[str, Any],
+    options: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Convert an older local-entry format into normalized data and options."""
 
     bootstrap = decrypt_bootstrap(
         str(data[CONF_LOCK_SN]).strip(),
@@ -449,40 +523,32 @@ def migrate_legacy_entry_data(data: Mapping[str, Any]) -> dict[str, Any]:
         data[CONF_VOLTAGE_THRESHOLDS]
     )
 
-    supports_remote_lock: bool | None
-    if CONF_SUPPORTS_REMOTE_LOCK in data:
-        supports_remote_lock = bool(data[CONF_SUPPORTS_REMOTE_LOCK])
-    else:
-        supports_remote_lock = None
-
-    return build_entry_data(
-        name=str(data.get("name") or DEFAULT_NAME).strip() or DEFAULT_NAME,
+    migrated_data = build_entry_data(
         mac_address=str(data[CONF_MAC_ADDRESS]),
         bootstrap=bootstrap,
         battery_profile=battery_profile,
-        reverse_commands=bool(
-            data.get(CONF_REVERSE_COMMANDS, DEFAULT_REVERSE_COMMANDS)
-        ),
-        supports_remote_lock=supports_remote_lock,
-        retry_count=int(data.get(CONF_RETRY_COUNT, DEFAULT_RETRY_COUNT)),
-        command_timeout=int(data.get(CONF_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)),
-        connectivity_probe_interval=int(
-            data.get(
-                CONF_CONNECTIVITY_PROBE_INTERVAL,
-                DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
-            )
-        ),
-        unavailable_after=int(
-            data.get(CONF_UNAVAILABLE_AFTER, DEFAULT_UNAVAILABLE_AFTER)
-        ),
         hardware_version=str(data.get(CONF_HARDWARE_VERSION, "")).strip(),
     )
+    migrated_options = validate_entry_options(
+        options,
+        lock_model=bootstrap.lock_model,
+        legacy_data=data,
+    )
+    return migrated_data, migrated_options
 
 
-def validate_entry_data(
+def migrate_legacy_entry_data(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Convert an older local-entry format into the public connection data."""
+
+    migrated_data, _migrated_options = migrate_legacy_entry(data, {})
+    return migrated_data
+
+
+def validate_entry(
     data: Mapping[str, Any],
-) -> tuple[dict[str, Any], BootstrapData]:
-    """Normalize and validate stored config-entry data."""
+    options: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], BootstrapData]:
+    """Normalize and validate stored config-entry data and options."""
 
     if (
         (
@@ -495,7 +561,7 @@ def validate_entry_data(
         and CONF_APP_KEY in data
         and CONF_VOLTAGE_THRESHOLDS in data
     ):
-        data = migrate_legacy_entry_data(data)
+        data, options = migrate_legacy_entry(data, options)
 
     lock_sn = str(data[CONF_LOCK_SN]).strip()
     if not lock_sn:
@@ -514,8 +580,7 @@ def validate_entry_data(
             f"Supported models: {supported}"
         ) from err
 
-    normalized: dict[str, Any] = {
-        "name": str(data.get("name") or DEFAULT_NAME).strip() or DEFAULT_NAME,
+    normalized_data: dict[str, Any] = {
         CONF_MAC_ADDRESS: normalize_mac_address(str(data[CONF_MAC_ADDRESS])),
         CONF_LOCK_SN: lock_sn,
         CONF_LOCK_MODEL: lock_model,
@@ -527,49 +592,42 @@ def validate_entry_data(
         CONF_BATTERY_PROFILE: battery_profile_to_storage(
             normalize_battery_profile(data[CONF_BATTERY_PROFILE])
         ),
-        CONF_REVERSE_COMMANDS: bool(
-            data.get(CONF_REVERSE_COMMANDS, DEFAULT_REVERSE_COMMANDS)
-        ),
-        CONF_SUPPORTS_REMOTE_LOCK: bool(
-            data.get(CONF_SUPPORTS_REMOTE_LOCK, model_profile.supports_remote_lock)
-        ),
-        CONF_RETRY_COUNT: int(data.get(CONF_RETRY_COUNT, DEFAULT_RETRY_COUNT)),
-        CONF_COMMAND_TIMEOUT: int(
-            data.get(CONF_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)
-        ),
-        CONF_CONNECTIVITY_PROBE_INTERVAL: int(
-            data.get(
-                CONF_CONNECTIVITY_PROBE_INTERVAL, DEFAULT_CONNECTIVITY_PROBE_INTERVAL
-            )
-        ),
-        CONF_UNAVAILABLE_AFTER: int(
-            data.get(CONF_UNAVAILABLE_AFTER, DEFAULT_UNAVAILABLE_AFTER)
-        ),
         CONF_HARDWARE_VERSION: str(data.get(CONF_HARDWARE_VERSION, "")).strip(),
     }
 
-    if normalized[CONF_PROFILE] != model_profile.key:
+    if normalized_data[CONF_PROFILE] != model_profile.key:
         raise AirbnkProtocolError(
-            f"profile '{normalized[CONF_PROFILE]}' does not match "
+            f"profile '{normalized_data[CONF_PROFILE]}' does not match "
             f"lock model '{lock_model}'"
         )
-    if normalized[CONF_RETRY_COUNT] < 0:
-        raise AirbnkProtocolError("retry_count must be 0 or greater")
-    if normalized[CONF_COMMAND_TIMEOUT] < 1:
-        raise AirbnkProtocolError("command_timeout must be at least 1 second")
-    if normalized[CONF_CONNECTIVITY_PROBE_INTERVAL] < 0:
-        raise AirbnkProtocolError("connectivity_probe_interval must be 0 or greater")
-    if normalized[CONF_UNAVAILABLE_AFTER] < 1:
-        raise AirbnkProtocolError("unavailable_after must be at least 1 second")
+
+    normalized_options = validate_entry_options(
+        options,
+        lock_model=lock_model,
+        legacy_data=data,
+    )
 
     bootstrap = BootstrapData(
         lock_sn=lock_sn,
         lock_model=lock_model,
         profile=model_profile.key,
-        manufacturer_key=bytes.fromhex(normalized[CONF_MANUFACTURER_KEY]),
-        binding_key=bytes.fromhex(normalized[CONF_BINDING_KEY]),
+        manufacturer_key=bytes.fromhex(normalized_data[CONF_MANUFACTURER_KEY]),
+        binding_key=bytes.fromhex(normalized_data[CONF_BINDING_KEY]),
     )
-    return normalized, bootstrap
+    return normalized_data, normalized_options, bootstrap
+
+
+def validate_entry_data(
+    data: Mapping[str, Any],
+) -> tuple[dict[str, Any], BootstrapData]:
+    """Normalize and validate stored connection data.
+
+    This compatibility wrapper is kept for the protocol tests and older callers
+    that only care about the persisted connection payload.
+    """
+
+    normalized_data, _normalized_options, bootstrap = validate_entry(data, {})
+    return normalized_data, bootstrap
 
 
 def parse_advertisement_data(

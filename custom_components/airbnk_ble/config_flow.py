@@ -19,10 +19,12 @@ from .airbnk import (
     AirbnkProtocolError,
     BootstrapData,
     build_entry_data,
+    build_entry_options,
     decrypt_bootstrap,
     normalize_mac_address,
     parse_advertisement_data,
     serial_numbers_match,
+    validate_entry_options,
 )
 from .cloud_api import (
     AirbnkCloudClient,
@@ -37,6 +39,7 @@ from .const import (
     CONF_CONNECTIVITY_PROBE_INTERVAL,
     CONF_DISCOVERED_ADDRESS,
     CONF_HARDWARE_VERSION,
+    CONF_LOCK_MODEL,
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
     CONF_NEW_SNINFO,
@@ -90,7 +93,7 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> AirbnkBleOptionsFlow:
         """Return the options flow."""
 
-        return AirbnkBleOptionsFlow(config_entry)
+        return AirbnkBleOptionsFlow()
 
     async def async_step_bluetooth(
         self,
@@ -303,10 +306,14 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 entry_data = build_entry_data(
-                    name=str(user_input[CONF_NAME]).strip(),
                     mac_address=self._resolve_address_from_form(user_input, candidates),
                     bootstrap=self._prepared_bootstrap,
                     battery_profile=self._prepared_battery_profile,
+                    hardware_version=self._prepared_hardware_version,
+                )
+                entry_options = build_entry_options(
+                    name=str(user_input[CONF_NAME]).strip(),
+                    lock_model=self._prepared_bootstrap.lock_model,
                     reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
                     supports_remote_lock=bool(user_input[CONF_SUPPORTS_REMOTE_LOCK]),
                     retry_count=int(user_input[CONF_RETRY_COUNT]),
@@ -315,7 +322,6 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input[CONF_CONNECTIVITY_PROBE_INTERVAL]
                     ),
                     unavailable_after=int(user_input[CONF_UNAVAILABLE_AFTER]),
-                    hardware_version=self._prepared_hardware_version,
                 )
             except AirbnkProtocolError:
                 errors["base"] = "invalid_address"
@@ -325,8 +331,9 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=entry_data[CONF_NAME],
+                    title=entry_options[CONF_NAME],
                     data=entry_data,
+                    options=entry_options,
                 )
 
         return self.async_show_form(
@@ -563,22 +570,23 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._prepared_bootstrap is None or self._prepared_battery_profile is None:
             return self.async_abort(reason="cannot_connect")
 
+        current_options = validate_entry_options(
+            entry.options,
+            lock_model=self._prepared_bootstrap.lock_model,
+            legacy_data=entry.data,
+        )
         updated = build_entry_data(
-            name=entry.data[CONF_NAME],
             mac_address=entry.data[CONF_MAC_ADDRESS],
             bootstrap=self._prepared_bootstrap,
             battery_profile=self._prepared_battery_profile,
-            reverse_commands=bool(entry.data[CONF_REVERSE_COMMANDS]),
-            supports_remote_lock=bool(entry.data[CONF_SUPPORTS_REMOTE_LOCK]),
-            retry_count=int(entry.data[CONF_RETRY_COUNT]),
-            command_timeout=int(entry.data[CONF_COMMAND_TIMEOUT]),
-            connectivity_probe_interval=int(
-                entry.data[CONF_CONNECTIVITY_PROBE_INTERVAL]
-            ),
-            unavailable_after=int(entry.data[CONF_UNAVAILABLE_AFTER]),
             hardware_version=self._prepared_hardware_version,
         )
-        return self.async_update_reload_and_abort(entry, data_updates=updated)
+        return self.async_update_reload_and_abort(
+            entry,
+            data=updated,
+            options=current_options,
+            title=current_options[CONF_NAME],
+        )
 
     def _resolve_address_from_form(
         self,
@@ -640,70 +648,67 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self._cloud_client
 
 
-class AirbnkBleOptionsFlow(config_entries.OptionsFlow):
+class AirbnkBleOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle Airbnk BLE options."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize the options flow."""
-
-        self._config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Update name and runtime tuning."""
 
         if user_input is not None:
-            updated_data = {
-                **self._config_entry.data,
-                CONF_NAME: str(user_input[CONF_NAME]).strip()
-                or self._config_entry.data[CONF_NAME],
-                CONF_REVERSE_COMMANDS: bool(user_input[CONF_REVERSE_COMMANDS]),
-                CONF_SUPPORTS_REMOTE_LOCK: bool(user_input[CONF_SUPPORTS_REMOTE_LOCK]),
-                CONF_RETRY_COUNT: int(user_input[CONF_RETRY_COUNT]),
-                CONF_COMMAND_TIMEOUT: int(user_input[CONF_COMMAND_TIMEOUT]),
-                CONF_CONNECTIVITY_PROBE_INTERVAL: int(
+            updated_options = build_entry_options(
+                name=str(user_input[CONF_NAME]).strip(),
+                lock_model=str(self.config_entry.data[CONF_LOCK_MODEL]),
+                reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
+                supports_remote_lock=bool(user_input[CONF_SUPPORTS_REMOTE_LOCK]),
+                retry_count=int(user_input[CONF_RETRY_COUNT]),
+                command_timeout=int(user_input[CONF_COMMAND_TIMEOUT]),
+                connectivity_probe_interval=int(
                     user_input[CONF_CONNECTIVITY_PROBE_INTERVAL]
                 ),
-                CONF_UNAVAILABLE_AFTER: int(user_input[CONF_UNAVAILABLE_AFTER]),
-            }
-            self.hass.config_entries.async_update_entry(
-                self._config_entry,
-                data=updated_data,
-                title=updated_data[CONF_NAME],
+                unavailable_after=int(user_input[CONF_UNAVAILABLE_AFTER]),
             )
-            return self.async_create_entry(title="", data={})
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                title=updated_options[CONF_NAME],
+            )
+            return self.async_create_entry(title="", data=updated_options)
+
+        current_options = validate_entry_options(
+            self.config_entry.options,
+            lock_model=str(self.config_entry.data[CONF_LOCK_MODEL]),
+            legacy_data=self.config_entry.data,
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_NAME, default=self._config_entry.data[CONF_NAME]
+                        CONF_NAME, default=current_options[CONF_NAME]
                     ): str,
                     vol.Optional(
                         CONF_REVERSE_COMMANDS,
-                        default=self._config_entry.data[CONF_REVERSE_COMMANDS],
+                        default=current_options[CONF_REVERSE_COMMANDS],
                     ): bool,
                     vol.Optional(
                         CONF_SUPPORTS_REMOTE_LOCK,
-                        default=self._config_entry.data[CONF_SUPPORTS_REMOTE_LOCK],
+                        default=current_options[CONF_SUPPORTS_REMOTE_LOCK],
                     ): bool,
                     vol.Optional(
                         CONF_RETRY_COUNT,
-                        default=self._config_entry.data[CONF_RETRY_COUNT],
+                        default=current_options[CONF_RETRY_COUNT],
                     ): vol.All(vol.Coerce(int), vol.Range(min=0, max=10)),
                     vol.Optional(
                         CONF_COMMAND_TIMEOUT,
-                        default=self._config_entry.data[CONF_COMMAND_TIMEOUT],
+                        default=current_options[CONF_COMMAND_TIMEOUT],
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=120)),
                     vol.Optional(
                         CONF_CONNECTIVITY_PROBE_INTERVAL,
-                        default=self._config_entry.data[
-                            CONF_CONNECTIVITY_PROBE_INTERVAL
-                        ],
+                        default=current_options[CONF_CONNECTIVITY_PROBE_INTERVAL],
                     ): vol.All(vol.Coerce(int), vol.Range(min=0, max=604800)),
                     vol.Optional(
                         CONF_UNAVAILABLE_AFTER,
-                        default=self._config_entry.data[CONF_UNAVAILABLE_AFTER],
+                        default=current_options[CONF_UNAVAILABLE_AFTER],
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
                 }
             ),

@@ -181,6 +181,18 @@ If commands are slow, fail, or the state does not update reliably, the problem i
 - Reconfigure flows for Bluetooth rediscovery and bootstrap refresh
 - Sanitized diagnostics output
 
+## Removal
+
+If you want to remove `Airbnk BLE` cleanly:
+
+1. Go to `Settings -> Devices & Services`.
+2. Open the `Airbnk BLE` entry for the lock.
+3. Choose `Delete`.
+4. If you no longer want the package installed at all, remove it from HACS too.
+5. Restart Home Assistant if you also removed the integration package from HACS.
+
+Removing the config entry does not modify the lock itself. It only removes Home Assistant's local configuration for that lock.
+
 ## Attribution
 
 This project builds on two streams of prior work:
@@ -243,3 +255,14 @@ ruff check .
 mypy custom_components/airbnk_ble
 pytest
 ```
+
+## Core Integration Roadmap
+
+This repository is now shaped to make a future Home Assistant core submission easier:
+
+- Bluetooth discovery is wired through Home Assistant's Bluetooth matcher model.
+- User-tunable behavior now lives in `ConfigEntry.options`, while connection/bootstrap data stays in `ConfigEntry.data`.
+- Removing an entry triggers Bluetooth rediscovery so the lock can be found again without restarting Home Assistant.
+- `quality_scale.yaml` is included to track bronze-level core readiness work.
+
+The main remaining blocker for a real core PR is dependency transparency. Home Assistant's core submission docs require the Airbnk communication layer to live in a separately published, reusable Python library on PyPI rather than inside the integration repo itself. Until that library exists, this project is best treated as a polished custom integration/HACS package that is intentionally being kept close to core expectations.

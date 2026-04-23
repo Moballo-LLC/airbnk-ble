@@ -1,0 +1,24 @@
+rules:
+  action_setup:
+    status: exempt
+    comment: The integration does not register Home Assistant service actions.
+  appropriate_polling:
+    status: exempt
+    comment: The integration is driven by Bluetooth advertisements and on-demand BLE commands instead of scheduled polling.
+  brands: done
+  common_modules: done
+  config_flow: done
+  config_flow_test_coverage: done
+  discovery: done
+  docs_actions:
+    status: exempt
+    comment: The integration does not expose Home Assistant service actions.
+  docs_high_level_description: done
+  docs_installation_instructions: done
+  docs_removal_instructions: done
+  entity_event_setup: done
+  entity_unique_id: done
+  has_entity_name: done
+  reconfiguration_flow: done
+  runtime_data: done
+  unique_config_entry: done

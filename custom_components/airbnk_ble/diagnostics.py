@@ -33,6 +33,7 @@ async def async_get_config_entry_diagnostics(
     runtime = entry.runtime_data
     return {
         "entry": async_redact_data(dict(entry.data), _REDACT_CONFIG),
+        "options": dict(entry.options),
         "runtime": {
             "available": runtime.state.available,
             "reachable": runtime.state.reachable,

@@ -24,12 +24,12 @@ async def test_diagnostics_redact_sensitive_fields(
         domain="airbnk_ble",
         title="Front Gate",
         data={
-            "name": "Front Gate",
             "lock_sn": "SECRET-SN",
             "mac_address": "AA:BB:CC:DD:EE:FF",
             "manufacturer_key": "deadbeef",
             "binding_key": "beefdead",
         },
+        options={"name": "Front Gate"},
     )
     runtime = MagicMock()
     runtime.bootstrap.lock_model = "B100"
@@ -53,6 +53,7 @@ async def test_diagnostics_redact_sensitive_fields(
     assert diagnostics["entry"]["mac_address"] == "**REDACTED**"
     assert diagnostics["entry"]["binding_key"] == "**REDACTED**"
     assert diagnostics["entry"]["manufacturer_key"] == "**REDACTED**"
+    assert diagnostics["options"]["name"] == "Front Gate"
 
 
 async def test_device_diagnostics_include_device_metadata(
@@ -64,12 +65,12 @@ async def test_device_diagnostics_include_device_metadata(
         domain="airbnk_ble",
         title="Front Gate",
         data={
-            "name": "Front Gate",
             "lock_sn": "SECRET-SN",
             "mac_address": "AA:BB:CC:DD:EE:FF",
             "manufacturer_key": "deadbeef",
             "binding_key": "beefdead",
         },
+        options={"name": "Front Gate"},
     )
     runtime = MagicMock()
     runtime.bootstrap.lock_model = "B100"

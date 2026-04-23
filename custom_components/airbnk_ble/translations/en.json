@@ -7,6 +7,9 @@
         "description": "Use the Airbnk or WeHere account email that can access this lock. The mobile app may sign out when the same account is reused.",
         "data": {
           "email": "Email"
+        },
+        "data_description": {
+          "email": "Use the Airbnk or WeHere account email that can access this lock. Plus-address aliases are supported."
         }
       },
       "cloud_verify": {
@@ -14,6 +17,9 @@
         "description": "Enter the verification code that Airbnk emailed to {email}.",
         "data": {
           "auth_code": "Verification code"
+        },
+        "data_description": {
+          "auth_code": "Airbnk emails a one-time verification code to the address from the previous step."
         }
       },
       "cloud_lock": {
@@ -21,6 +27,9 @@
         "description": "Select which Airbnk lock to import from the authenticated account.",
         "data": {
           "selected_lock": "Lock"
+        },
+        "data_description": {
+          "selected_lock": "Only supported Airbnk lock models with local BLE profiles are shown here."
         }
       },
       "manual": {
@@ -31,6 +40,12 @@
           "lock_sn": "Lock serial number",
           "new_sninfo": "newSninfo",
           "app_key": "appKey"
+        },
+        "data_description": {
+          "name": "Friendly lock name shown in Home Assistant.",
+          "lock_sn": "Use the Airbnk lock serial number exactly as shown in the app or your existing tooling.",
+          "new_sninfo": "Paste the raw newSninfo value. It is used only during setup and is not stored afterwards.",
+          "app_key": "Paste the raw appKey value. It is used only during setup and is not stored afterwards."
         }
       },
       "confirm_lock": {
@@ -46,6 +61,17 @@
           "command_timeout": "Command timeout (seconds)",
           "connectivity_probe_interval": "Connectivity probe interval (seconds, 0 disables)",
           "unavailable_after": "Unavailable after (seconds)"
+        },
+        "data_description": {
+          "name": "Friendly lock name shown in Home Assistant.",
+          "discovered_address": "Choose the Bluetooth address Home Assistant discovered for this lock whenever possible.",
+          "mac_address": "Only needed when discovery could not automatically match the lock.",
+          "reverse_commands": "Enable this only if lock and unlock appear reversed on your hardware.",
+          "supports_remote_lock": "Enable this only for models that support a distinct remote lock command.",
+          "retry_count": "How many additional BLE command attempts Home Assistant should make after the first try.",
+          "command_timeout": "How long Home Assistant should wait for each BLE command attempt before failing it.",
+          "connectivity_probe_interval": "Optional active BLE reachability probe interval. Set to 0 to disable background probes.",
+          "unavailable_after": "How long the lock may stay quiet before Home Assistant marks its state unavailable."
         }
       },
       "reconfigure": {
@@ -57,6 +83,10 @@
         "data": {
           "discovered_address": "Discovered Bluetooth address",
           "mac_address": "Manual MAC address"
+        },
+        "data_description": {
+          "discovered_address": "Choose the Bluetooth address Home Assistant currently sees for this lock.",
+          "mac_address": "Use this only if discovery still cannot match the lock automatically."
         }
       },
       "refresh_bootstrap": {
@@ -67,6 +97,9 @@
         "description": "Request a fresh verification code for the Airbnk account that can access this lock.",
         "data": {
           "email": "Email"
+        },
+        "data_description": {
+          "email": "Use the Airbnk or WeHere account email that can access this lock."
         }
       },
       "cloud_refresh_verify": {
@@ -74,6 +107,9 @@
         "description": "Enter the verification code that Airbnk emailed to {email}.",
         "data": {
           "auth_code": "Verification code"
+        },
+        "data_description": {
+          "auth_code": "Airbnk emails a one-time verification code to the address from the previous step."
         }
       },
       "manual_refresh": {
@@ -82,6 +118,10 @@
         "data": {
           "new_sninfo": "newSninfo",
           "app_key": "appKey"
+        },
+        "data_description": {
+          "new_sninfo": "Paste the refreshed raw newSninfo value for this lock. It is not stored afterwards.",
+          "app_key": "Paste the refreshed raw appKey value for this lock. It is not stored afterwards."
         }
       }
     },
@@ -114,6 +154,15 @@
           "command_timeout": "Command timeout (seconds)",
           "connectivity_probe_interval": "Connectivity probe interval (seconds, 0 disables)",
           "unavailable_after": "Unavailable after (seconds)"
+        },
+        "data_description": {
+          "name": "Friendly lock name shown in Home Assistant.",
+          "reverse_commands": "Enable this only if lock and unlock appear reversed on your hardware.",
+          "supports_remote_lock": "Enable this only for models that support a distinct remote lock command.",
+          "retry_count": "How many additional BLE command attempts Home Assistant should make after the first try.",
+          "command_timeout": "How long Home Assistant should wait for each BLE command attempt before failing it.",
+          "connectivity_probe_interval": "Optional active BLE reachability probe interval. Set to 0 to disable background probes.",
+          "unavailable_after": "How long the lock may stay quiet before Home Assistant marks its state unavailable."
         }
       }
     }

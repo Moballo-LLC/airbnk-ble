@@ -13,6 +13,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.airbnk_ble.airbnk import (
     BootstrapData,
     build_entry_data,
+    build_entry_options,
     parse_advertisement_data,
     parse_status_response,
 )
@@ -40,7 +41,6 @@ async def test_runtime_applies_advertisement_and_status_updates(
         domain="airbnk_ble",
         title="Front Gate",
         data=build_entry_data(
-            name="Front Gate",
             mac_address="AA:BB:CC:DD:EE:FF",
             bootstrap=bootstrap,
             battery_profile=[
@@ -50,6 +50,7 @@ async def test_runtime_applies_advertisement_and_status_updates(
                 {"voltage": 2.9, "percent": 100.0},
             ],
         ),
+        options=build_entry_options(name="Front Gate", lock_model="B100"),
     )
     runtime = AirbnkLockRuntime(hass, entry, bootstrap)
 
@@ -93,7 +94,6 @@ async def test_runtime_rejects_lock_when_remote_lock_is_disabled(
         domain="airbnk_ble",
         title="Front Gate",
         data=build_entry_data(
-            name="Front Gate",
             mac_address="AA:BB:CC:DD:EE:FF",
             bootstrap=bootstrap,
             battery_profile=[
@@ -102,6 +102,10 @@ async def test_runtime_rejects_lock_when_remote_lock_is_disabled(
                 {"voltage": 2.6, "percent": 60.0},
                 {"voltage": 2.9, "percent": 100.0},
             ],
+        ),
+        options=build_entry_options(
+            name="Front Gate",
+            lock_model="B100",
             supports_remote_lock=False,
         ),
     )
@@ -132,7 +136,6 @@ async def test_runtime_requires_advert_before_command(
         domain="airbnk_ble",
         title="Front Gate",
         data=build_entry_data(
-            name="Front Gate",
             mac_address="AA:BB:CC:DD:EE:FF",
             bootstrap=bootstrap,
             battery_profile=[
@@ -141,6 +144,10 @@ async def test_runtime_requires_advert_before_command(
                 {"voltage": 2.6, "percent": 60.0},
                 {"voltage": 2.9, "percent": 100.0},
             ],
+        ),
+        options=build_entry_options(
+            name="Front Gate",
+            lock_model="B100",
             supports_remote_lock=True,
         ),
     )
@@ -167,7 +174,6 @@ async def test_runtime_helper_logic_for_reverse_restore_and_transient_status(
         domain="airbnk_ble",
         title="Front Gate",
         data=build_entry_data(
-            name="Front Gate",
             mac_address="AA:BB:CC:DD:EE:FF",
             bootstrap=bootstrap,
             battery_profile=[
@@ -176,6 +182,10 @@ async def test_runtime_helper_logic_for_reverse_restore_and_transient_status(
                 {"voltage": 2.6, "percent": 60.0},
                 {"voltage": 2.9, "percent": 100.0},
             ],
+        ),
+        options=build_entry_options(
+            name="Front Gate",
+            lock_model="B100",
             reverse_commands=True,
             supports_remote_lock=True,
         ),
@@ -212,7 +222,6 @@ async def test_runtime_probe_failure_marks_reachability_false(
         domain="airbnk_ble",
         title="Front Gate",
         data=build_entry_data(
-            name="Front Gate",
             mac_address="AA:BB:CC:DD:EE:FF",
             bootstrap=bootstrap,
             battery_profile=[
@@ -221,6 +230,10 @@ async def test_runtime_probe_failure_marks_reachability_false(
                 {"voltage": 2.6, "percent": 60.0},
                 {"voltage": 2.9, "percent": 100.0},
             ],
+        ),
+        options=build_entry_options(
+            name="Front Gate",
+            lock_model="B100",
             connectivity_probe_interval=30,
         ),
     )
