@@ -5,12 +5,12 @@
     "step": {
       "user": {
         "menu_options": {
-          "cloud": "Connect with Airbnk cloud",
+          "cloud": "Connect with Airbnk / WeHere cloud",
           "manual": "Enter bootstrap values manually"
         }
       },
       "cloud": {
-        "title": "Connect to Airbnk cloud",
+        "title": "Connect to Airbnk / WeHere cloud",
         "description": "Use the Airbnk or WeHere account email that can access this lock. Cloud access is used only during setup to fetch bootstrap data; normal lock control stays local over Bluetooth. The mobile app may sign out when the same account is reused.",
         "data": {
           "email": "Email"
@@ -21,27 +21,27 @@
       },
       "cloud_verify": {
         "title": "Enter verification code",
-        "description": "Enter the verification code that Airbnk emailed to {email}.",
+        "description": "Enter the verification code that Airbnk or WeHere emailed to {email}.",
         "data": {
           "auth_code": "Verification code"
         },
         "data_description": {
-          "auth_code": "Airbnk emails a one-time verification code to the address from the previous step."
+          "auth_code": "Airbnk or WeHere emails a one-time verification code to the address from the previous step."
         }
       },
       "cloud_lock": {
         "title": "Choose a lock",
-        "description": "Select which Airbnk lock to import from the authenticated account.",
+        "description": "Select which Airbnk or WeHere lock to import from the authenticated account.",
         "data": {
           "selected_lock": "Lock"
         },
         "data_description": {
-          "selected_lock": "Only supported Airbnk lock models with local BLE profiles are shown here."
+          "selected_lock": "Only supported Airbnk or WeHere lock models with local BLE profiles are shown here."
         }
       },
       "manual": {
         "title": "Manual bootstrap",
-        "description": "Enter the bootstrap values for one Airbnk lock. These raw values are used only to derive local keys and are not stored.",
+        "description": "Enter the bootstrap values for one Airbnk or WeHere lock. These raw values are used only to derive local keys and are not stored.",
         "data": {
           "name": "Name",
           "lock_sn": "Lock serial number",
@@ -50,7 +50,7 @@
         },
         "data_description": {
           "name": "Friendly lock name shown in Home Assistant.",
-          "lock_sn": "Use the Airbnk lock serial number exactly as shown in the app or your existing tooling.",
+          "lock_sn": "Use the Airbnk or WeHere lock serial number exactly as shown in the app or your existing tooling.",
           "new_sninfo": "Paste the raw newSninfo value. It is used only during setup and is not stored afterwards.",
           "app_key": "Paste the raw appKey value. It is used only during setup and is not stored afterwards."
         }
@@ -100,8 +100,8 @@
         "title": "Refresh bootstrap"
       },
       "cloud_refresh": {
-        "title": "Refresh from Airbnk cloud",
-        "description": "Request a fresh verification code for the Airbnk account that can access this lock. This is only used to refresh local bootstrap data; normal lock control remains local over Bluetooth.",
+        "title": "Refresh from Airbnk / WeHere cloud",
+        "description": "Request a fresh verification code for the Airbnk or WeHere account that can access this lock. This is only used to refresh local bootstrap data; normal lock control remains local over Bluetooth.",
         "data": {
           "email": "Email"
         },
@@ -111,12 +111,12 @@
       },
       "cloud_refresh_verify": {
         "title": "Enter verification code",
-        "description": "Enter the verification code that Airbnk emailed to {email}.",
+        "description": "Enter the verification code that Airbnk or WeHere emailed to {email}.",
         "data": {
           "auth_code": "Verification code"
         },
         "data_description": {
-          "auth_code": "Airbnk emails a one-time verification code to the address from the previous step."
+          "auth_code": "Airbnk or WeHere emails a one-time verification code to the address from the previous step."
         }
       },
       "manual_refresh": {
@@ -133,20 +133,20 @@
       }
     },
     "error": {
-      "code_request_failed": "Could not request a verification code from the Airbnk cloud.",
-      "invalid_address": "Enter a valid Airbnk Bluetooth MAC address.",
-      "invalid_airbnk_bootstrap": "The Airbnk bootstrap data could not be decrypted or did not match this lock.",
-      "lock_mismatch": "The manual bootstrap serial number does not match the discovered Airbnk lock.",
-      "token_retrieval_failed": "Could not authenticate with the Airbnk cloud."
+      "code_request_failed": "Could not request a verification code from the Airbnk / WeHere cloud.",
+      "invalid_address": "Enter a valid Airbnk / WeHere Bluetooth MAC address.",
+      "invalid_airbnk_bootstrap": "The Airbnk / WeHere bootstrap data could not be decrypted or did not match this lock.",
+      "lock_mismatch": "The manual bootstrap serial number does not match the discovered Airbnk / WeHere lock.",
+      "token_retrieval_failed": "Could not authenticate with the Airbnk / WeHere cloud."
     },
     "abort": {
-      "already_configured": "This Airbnk lock is already configured.",
-      "another_device": "The refreshed bootstrap belongs to a different Airbnk lock.",
-      "cannot_connect": "The requested Airbnk operation could not be completed.",
-      "invalid_airbnk_bootstrap": "The Airbnk bootstrap data could not be decrypted or did not match this lock.",
-      "lock_not_found": "The selected Airbnk lock could not be found in the authenticated account.",
-      "no_supported_locks": "No supported Airbnk locks were found for this account.",
-      "not_airbnk_device": "The discovered Bluetooth device is not a supported Airbnk lock."
+      "already_configured": "This Airbnk / WeHere lock is already configured.",
+      "another_device": "The refreshed bootstrap belongs to a different Airbnk / WeHere lock.",
+      "cannot_connect": "The requested Airbnk / WeHere operation could not be completed.",
+      "invalid_airbnk_bootstrap": "The Airbnk / WeHere bootstrap data could not be decrypted or did not match this lock.",
+      "lock_not_found": "The selected Airbnk / WeHere lock could not be found in the authenticated account.",
+      "no_supported_locks": "No supported Airbnk / WeHere locks were found for this account.",
+      "not_airbnk_device": "The discovered Bluetooth device is not a supported Airbnk / WeHere lock."
     }
   },
   "options": {

@@ -1,8 +1,10 @@
 # Airbnk BLE
 
-Local Bluetooth control for supported Airbnk locks in Home Assistant.
+Local Bluetooth control for supported Airbnk / WeHere smart locks in Home Assistant.
 
 This custom integration keeps lock operation local over Home Assistant Bluetooth. The Airbnk or WeHere cloud is used only to acquire bootstrap material during setup or explicit refresh, and the integration stores only derived local keys after setup completes.
+
+If your lock or mobile app is branded `WeHere`, this is still the right integration. In Home Assistant and HACS, the package name is still `Airbnk BLE`.
 
 ## Status
 
@@ -19,7 +21,7 @@ Before you install this integration, make sure you have all of the following:
    - a local Bluetooth adapter connected to your Home Assistant machine
    - an ESPHome Bluetooth proxy near the lock
 3. The lock must be close enough to that adapter or proxy for reliable BLE communication.
-4. One supported Airbnk lock.
+4. One supported Airbnk / WeHere lock.
 5. Either:
    - an Airbnk or WeHere account email that can access the lock
    - or the manual bootstrap values for the lock: `lock_sn`, `newSninfo`, and `appKey`
@@ -80,6 +82,7 @@ Notes:
 5. Go to `Settings -> Devices & Services`.
 6. Select `Add Integration`.
 7. Search for `Airbnk BLE`.
+   If your lock is branded `WeHere`, still search for `Airbnk BLE`.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Moballo-LLC&repository=airbnk-ble&category=integration)
 
@@ -93,7 +96,7 @@ You should be able to open `Settings -> Devices & Services -> Bluetooth` and see
 
 If you cannot do that yet, fix Bluetooth first. This integration depends on Home Assistant Bluetooth and does not replace it.
 
-If Bluetooth is healthy and your lock is nearby, Home Assistant may also discover the lock automatically and show `Airbnk BLE` in the discovered integrations list. That auto-discovery only helps when Home Assistant has a connectable BLE path to the lock.
+If Bluetooth is healthy and your lock is nearby, Home Assistant may also discover the lock automatically and show `Airbnk BLE` in the discovered integrations list. That auto-discovery only helps when Home Assistant has a connectable BLE path to the Airbnk or WeHere lock.
 
 ### Step 2: Add `Airbnk BLE`
 
@@ -102,6 +105,7 @@ Once Bluetooth is working:
 1. Go to `Settings -> Devices & Services`.
 2. Select `Add Integration`.
 3. Choose `Airbnk BLE`.
+   Even for WeHere-branded locks, the integration name is `Airbnk BLE`.
 4. Pick one of the setup modes below.
 
 ## Setup Modes
