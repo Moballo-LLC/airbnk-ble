@@ -26,6 +26,8 @@ Use an Airbnk or WeHere account email, request a verification code, then choose 
 
 Important: the Airbnk cloud may sign the mobile app out if the same account is reused. A separate shared-access account is safer.
 
+Plus-address email aliases such as `name+airbnk@example.com` are supported for cloud login.
+
 ### Manual
 
 Provide `lock_sn`, `newSninfo`, and `appKey` directly. The raw values are used only during setup to derive local keys and are not stored afterwards.

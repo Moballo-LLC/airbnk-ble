@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlencode
 
 from aiohttp import ClientError
 from homeassistant.const import CONF_EMAIL
@@ -191,9 +190,14 @@ class AirbnkCloudClient:
     ) -> dict[str, Any]:
         """Call an Airbnk cloud endpoint and validate the response."""
 
-        url = f"{AIRBNK_CLOUD_URL}{path}?{urlencode(params)}"
+        url = f"{AIRBNK_CLOUD_URL}{path}"
         try:
-            response = await self._session.request(method, url, headers=AIRBNK_HEADERS)
+            response = await self._session.request(
+                method,
+                url,
+                headers=AIRBNK_HEADERS,
+                params=params,
+            )
         except ClientError as err:
             raise AirbnkCloudError(f"Could not reach the Airbnk cloud: {err}") from err
 
