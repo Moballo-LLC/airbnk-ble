@@ -7,8 +7,8 @@ rules:
     comment: The integration is driven by Bluetooth advertisements and on-demand BLE commands instead of scheduled polling.
   brands: done
   dependency_transparency:
-    status: todo
-    comment: The communication layer now lives in the external pyairbnk repository with public CI and release automation, but Home Assistant core readiness still requires publishing that dependency on PyPI instead of the current GitHub release URL bridge.
+    status: done
+    comment: The communication layer now lives in the external pyairbnk repository with public CI, release automation, and a published PyPI package.
   common_modules: done
   config_flow: done
   config_flow_test_coverage: done

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 2.0.2 - 2026-04-23
+
+- Switched `Airbnk BLE` from the temporary GitHub tag archive bridge to the
+  published `pyairbnk==1.0.1` PyPI package
+- Updated test and validation dependencies to install `pyairbnk` from PyPI as
+  well
+- Marked dependency transparency complete in the integration quality-scale
+  notes now that the extracted communication library is publicly published
+
 ## 2.0.1 - 2026-04-23
 
 - Fixed the extracted `pyairbnk` direct dependency string so Hassfest accepts the manifest requirement and HACS can install the split library bridge correctly
