@@ -136,12 +136,13 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             email = str(user_input[CONF_EMAIL]).strip()
+            self._cloud_email = email
             try:
                 await self._get_cloud_client().async_request_verification_code(email)
-            except AirbnkCloudError:
+            except AirbnkCloudError as err:
+                _LOGGER.warning("Airbnk verification-code request failed: %s", err)
                 errors["base"] = "code_request_failed"
             else:
-                self._cloud_email = email
                 return await self.async_step_cloud_verify()
 
         return self.async_show_form(
@@ -169,7 +170,8 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     code,
                 )
                 cloud_locks = await self._get_cloud_client().async_get_locks(session)
-            except AirbnkCloudError:
+            except AirbnkCloudError as err:
+                _LOGGER.warning("Airbnk cloud authentication failed: %s", err)
                 errors["base"] = "token_retrieval_failed"
             else:
                 self._cloud_locks = {}
@@ -423,12 +425,13 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             email = str(user_input[CONF_EMAIL]).strip()
+            self._cloud_email = email
             try:
                 await self._get_cloud_client().async_request_verification_code(email)
-            except AirbnkCloudError:
+            except AirbnkCloudError as err:
+                _LOGGER.warning("Airbnk refresh-code request failed: %s", err)
                 errors["base"] = "code_request_failed"
             else:
-                self._cloud_email = email
                 return await self.async_step_cloud_refresh_verify()
 
         return self.async_show_form(
@@ -454,7 +457,11 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     str(user_input[CONF_AUTH_CODE]).strip(),
                 )
                 locks = await self._get_cloud_client().async_get_locks(session)
-            except AirbnkCloudError:
+            except AirbnkCloudError as err:
+                _LOGGER.warning(
+                    "Airbnk bootstrap refresh authentication failed: %s",
+                    err,
+                )
                 errors["base"] = "token_retrieval_failed"
             else:
                 matching_lock = next(

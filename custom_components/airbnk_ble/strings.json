@@ -11,12 +11,12 @@
       },
       "cloud": {
         "title": "Connect to Airbnk cloud",
-        "description": "Use the Airbnk or WeHere account email that can access this lock. The mobile app may sign out when the same account is reused.",
+        "description": "Use the Airbnk or WeHere account email that can access this lock. Cloud access is used only during setup to fetch bootstrap data; normal lock control stays local over Bluetooth. The mobile app may sign out when the same account is reused.",
         "data": {
           "email": "Email"
         },
         "data_description": {
-          "email": "Use the Airbnk or WeHere account email that can access this lock. Plus-address aliases are supported."
+          "email": "Use the Airbnk or WeHere account email that can access this lock. This cloud login is only for setup, and the lock runs locally over Bluetooth afterwards. Plus-address aliases are supported."
         }
       },
       "cloud_verify": {
@@ -101,12 +101,12 @@
       },
       "cloud_refresh": {
         "title": "Refresh from Airbnk cloud",
-        "description": "Request a fresh verification code for the Airbnk account that can access this lock.",
+        "description": "Request a fresh verification code for the Airbnk account that can access this lock. This is only used to refresh local bootstrap data; normal lock control remains local over Bluetooth.",
         "data": {
           "email": "Email"
         },
         "data_description": {
-          "email": "Use the Airbnk or WeHere account email that can access this lock."
+          "email": "Use the Airbnk or WeHere account email that can access this lock. This cloud login is only for bootstrap refresh, and the lock continues to run locally over Bluetooth."
         }
       },
       "cloud_refresh_verify": {

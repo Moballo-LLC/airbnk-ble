@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from custom_components.airbnk_ble.cloud_api import (
+    AIRBNK_VERSION,
     AirbnkCloudClient,
     AirbnkCloudError,
     AirbnkCloudSession,
@@ -43,6 +44,7 @@ async def test_request_verification_code_preserves_plus_addressing() -> None:
     assert session.request.await_count == 1
     request_kwargs = session.request.await_args.kwargs
     assert request_kwargs["params"]["loginAcct"] == "user+locks@example.com"
+    assert request_kwargs["params"]["version"] == AIRBNK_VERSION
 
 
 async def test_authenticate_preserves_plus_addressing() -> None:
@@ -180,3 +182,17 @@ async def test_async_call_raises_for_missing_data() -> None:
 
     with pytest.raises(AirbnkCloudError, match="did not include any data"):
         await client._async_call("GET", "/test", {})  # noqa: SLF001
+
+
+async def test_async_call_raises_with_info_field_message() -> None:
+    """Cloud errors should surface the server's 'info' field."""
+
+    session = AsyncMock()
+    session.request.return_value = _MockResponse(
+        {"code": 500, "info": "Update app:https://we-here.com/en/app.html "}
+    )
+    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
+    client._session = session  # noqa: SLF001
+
+    with pytest.raises(AirbnkCloudError, match="Update app:"):
+        await client._async_call("POST", "/test", {}, expect_data=False)  # noqa: SLF001

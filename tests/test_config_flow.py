@@ -10,11 +10,17 @@ from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.airbnk_ble.cloud_api import AirbnkCloudLock, AirbnkCloudSession
+from custom_components.airbnk_ble.cloud_api import (
+    AirbnkCloudError,
+    AirbnkCloudLock,
+    AirbnkCloudSession,
+)
 from custom_components.airbnk_ble.const import (
+    AIRBNK_ADV_SERVICE_UUID,
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
     DOMAIN,
+    MANUFACTURER_ID_AIRBNK,
 )
 
 from .common import build_advertisement_payload, build_bootstrap_fixture
@@ -221,6 +227,79 @@ async def test_bluetooth_discovery_prefills_manual_setup(
         assert lock_sn_field.default() == fixture["lock_sn"][:9]
 
 
+async def test_bluetooth_discovery_accepts_airbnk_payload_under_alternate_company_id(
+    hass: HomeAssistant,
+) -> None:
+    """Discovery parsing should not depend on a single BLE company ID."""
+
+    fixture = build_bootstrap_fixture()
+    discovery = SimpleNamespace(
+        address="AA:BB:CC:DD:EE:FF",
+        manufacturer_data={
+            0x1234: build_advertisement_payload(serial_fragment=fixture["lock_sn"][:9])
+        },
+        service_uuids=[AIRBNK_ADV_SERVICE_UUID],
+        rssi=-60,
+    )
+
+    with patch(
+        "homeassistant.config_entries.async_process_deps_reqs",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_BLUETOOTH},
+            data=discovery,
+        )
+        assert result["type"] == "menu"
+        progress = hass.config_entries.flow.async_get(result["flow_id"])
+        assert progress["context"]["title_placeholders"]["name"] == (
+            f"Airbnk lock {fixture['lock_sn'][:9]}"
+        )
+
+
+async def test_cloud_flow_keeps_email_after_verification_code_request_failure(
+    hass: HomeAssistant,
+) -> None:
+    """Cloud setup should preserve the typed email when code requests fail."""
+
+    with (
+        patch(
+            "homeassistant.config_entries.async_process_deps_reqs",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.airbnk_ble.config_flow.AirbnkCloudClient.async_request_verification_code",
+            side_effect=AirbnkCloudError("Update app"),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_USER},
+        )
+        assert result["type"] == "menu"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"next_step_id": "cloud"},
+        )
+        assert result["type"] == "form"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_EMAIL: "user@example.com"},
+        )
+        assert result["type"] == "form"
+        assert result["step_id"] == "cloud"
+        assert result["errors"] == {"base": "code_request_failed"}
+        email_field = next(
+            field
+            for field in result["data_schema"].schema
+            if getattr(field, "schema", None) == CONF_EMAIL
+        )
+        assert email_field.default() == "user@example.com"
+
+
 async def test_options_flow_updates_entry_options_without_touching_connection_data(
     hass: HomeAssistant,
 ) -> None:
@@ -291,3 +370,50 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
     assert entry.options["name"] == "Front Door"
     assert entry.options["retry_count"] == 5
     assert entry.title == "Front Door"
+
+
+def test_manifest_bluetooth_matchers_cover_company_id_and_fallback_paths() -> None:
+    """Manifest discovery should not rely on only one BLE company ID."""
+
+    bluetooth_matchers = [matcher for matcher in _load_manifest()["bluetooth"]]
+
+    assert {
+        "connectable": True,
+        "manufacturer_data_start": [186, 186],
+        "manufacturer_id": MANUFACTURER_ID_AIRBNK,
+    } in bluetooth_matchers
+    assert {
+        "connectable": True,
+        "service_uuid": AIRBNK_ADV_SERVICE_UUID,
+    } in bluetooth_matchers
+
+    local_name_patterns = {
+        matcher["local_name"]
+        for matcher in bluetooth_matchers
+        if "local_name" in matcher
+    }
+    assert local_name_patterns >= {
+        "Airbnk*",
+        "WeHere*",
+        "B100*",
+        "M300*",
+        "M500*",
+        "M510*",
+        "M530*",
+        "M531*",
+    }
+
+
+def _load_manifest() -> dict:
+    """Load the integration manifest for metadata assertions."""
+
+    import json
+    from pathlib import Path
+
+    manifest_path = (
+        Path(__file__).resolve().parents[1]
+        / "custom_components"
+        / "airbnk_ble"
+        / "manifest.json"
+    )
+    return json.loads(manifest_path.read_text(encoding="utf-8"))

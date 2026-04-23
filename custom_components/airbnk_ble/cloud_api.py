@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 AIRBNK_CLOUD_URL = "https://wehereapi.seamooncloud.com"
 AIRBNK_LANGUAGE = "2"
-AIRBNK_VERSION = "A_FD_1.8.0"
+AIRBNK_VERSION = "A_FD_2.1.6"
 AIRBNK_HEADERS = {
     "user-agent": "okhttp/3.12.0",
     "Accept-Encoding": "gzip, deflate",
@@ -211,7 +211,8 @@ class AirbnkCloudClient:
         if payload.get("code") != 200:
             raise AirbnkCloudError(
                 str(
-                    payload.get("msg")
+                    payload.get("info")
+                    or payload.get("msg")
                     or payload.get("message")
                     or "Airbnk cloud rejected the request"
                 )
