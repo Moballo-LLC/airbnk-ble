@@ -6,3 +6,5 @@ aiousbwatcher
 pyserial
 ruff
 mypy
+requests
+types-requests

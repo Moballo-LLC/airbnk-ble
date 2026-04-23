@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlencode
 
-from aiohttp import ClientError
+import requests
 from homeassistant.const import CONF_EMAIL
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from requests import RequestException
 
 from .airbnk import AirbnkProtocolError, battery_profile_from_voltage_points
 
@@ -16,11 +18,13 @@ _LOGGER = logging.getLogger(__name__)
 
 AIRBNK_CLOUD_URL = "https://wehereapi.seamooncloud.com"
 AIRBNK_LANGUAGE = "2"
-AIRBNK_VERSION = "A_FD_2.1.6"
+AIRBNK_VERSION = "A_FD_2.1.8"
 AIRBNK_HEADERS = {
     "user-agent": "okhttp/3.12.0",
     "Accept-Encoding": "gzip, deflate",
 }
+AIRBNK_TIMEOUT = (10, 30)
+AIRBNK_RETRY_ATTEMPTS = 2
 
 
 class AirbnkCloudError(RuntimeError):
@@ -52,7 +56,7 @@ class AirbnkCloudClient:
     """Fetch bootstrap data from the Airbnk cloud."""
 
     def __init__(self, hass) -> None:
-        self._session = async_get_clientsession(hass)
+        self._hass = hass
 
     async def async_request_verification_code(self, email: str) -> None:
         """Request an email verification code."""
@@ -190,23 +194,18 @@ class AirbnkCloudClient:
     ) -> dict[str, Any]:
         """Call an Airbnk cloud endpoint and validate the response."""
 
-        url = f"{AIRBNK_CLOUD_URL}{path}"
-        try:
-            response = await self._session.request(
-                method,
-                url,
-                headers=AIRBNK_HEADERS,
-                params=params,
-            )
-        except ClientError as err:
-            raise AirbnkCloudError(f"Could not reach the Airbnk cloud: {err}") from err
+        url = f"{AIRBNK_CLOUD_URL}{path}?{urlencode(params)}"
+        response = await self._async_request(method, url)
 
-        async with response:
-            if response.status != 200:
-                raise AirbnkCloudError(
-                    f"Airbnk cloud request failed with HTTP {response.status}"
-                )
-            payload = await response.json(content_type=None)
+        if response.status_code != 200:
+            raise AirbnkCloudError(
+                f"Airbnk cloud request failed with HTTP {response.status_code}"
+            )
+
+        try:
+            payload = response.json()
+        except ValueError as err:
+            raise AirbnkCloudError("Airbnk cloud returned invalid JSON") from err
 
         if payload.get("code") != 200:
             raise AirbnkCloudError(
@@ -220,3 +219,46 @@ class AirbnkCloudClient:
         if expect_data and "data" not in payload:
             raise AirbnkCloudError("Airbnk cloud response did not include any data")
         return payload
+
+    async def _async_request(self, method: str, url: str) -> requests.Response:
+        """Perform an Airbnk HTTP request in the executor with retries."""
+
+        last_err: RequestException | None = None
+        endpoint = url.partition("?")[0]
+        for attempt in range(1, AIRBNK_RETRY_ATTEMPTS + 1):
+            try:
+                func = functools.partial(
+                    requests.request,
+                    method,
+                    url,
+                    headers=AIRBNK_HEADERS,
+                    timeout=AIRBNK_TIMEOUT,
+                )
+                return await self._hass.async_add_executor_job(func)
+            except RequestException as err:
+                last_err = err
+                if attempt == AIRBNK_RETRY_ATTEMPTS:
+                    break
+                _LOGGER.debug(
+                    "Retrying Airbnk cloud request after %s (%s/%s): %s",
+                    type(err).__name__,
+                    attempt,
+                    AIRBNK_RETRY_ATTEMPTS,
+                    endpoint,
+                )
+
+        raise AirbnkCloudError(
+            f"Could not reach the Airbnk cloud: {_describe_transport_error(last_err)}"
+        ) from last_err
+
+
+def _describe_transport_error(err: RequestException | None) -> str:
+    """Return a log-safe description for a transport failure."""
+
+    if err is None:
+        return "Request failed"
+    if isinstance(err, requests.Timeout):
+        return "Connection timeout"
+    if isinstance(err, requests.ConnectionError):
+        return "Connection error"
+    return type(err).__name__

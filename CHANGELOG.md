@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.3 - 2026-04-23
+
+- Switched the Airbnk / WeHere cloud bootstrap flow onto an executor-backed HTTP transport, matching the older working integration style more closely than the previous `aiohttp` path
+- Updated the cloud app signature used for verification-code requests and auth to `A_FD_2.1.8`, which the live Airbnk / WeHere endpoints no longer reject as an outdated app version
+- Added retry handling for transient cloud transport failures during verification-code requests and authentication
+- Sanitized cloud transport errors so timeout logs no longer echo the full request URL or the account email address
+- Declared the runtime/test dependencies needed for the new cloud transport path
+
 ## 1.0.2 - 2026-04-23
 
 - Updated the Airbnk cloud client signature to match current app-version requirements when requesting verification codes
