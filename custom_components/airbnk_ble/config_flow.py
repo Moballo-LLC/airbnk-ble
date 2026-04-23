@@ -107,6 +107,7 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._preferred_address = normalize_mac_address(discovery_info.address)
         self._preferred_lock_sn = parsed.serial_number
+        await self.async_set_unique_id(self._preferred_address)
         self.context["title_placeholders"] = {
             "name": _format_discovery_title(
                 parsed.serial_number,

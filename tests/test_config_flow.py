@@ -16,7 +16,6 @@ from custom_components.airbnk_ble.cloud_api import (
     AirbnkCloudSession,
 )
 from custom_components.airbnk_ble.const import (
-    AIRBNK_ADV_SERVICE_UUID,
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
     DOMAIN,
@@ -211,6 +210,7 @@ async def test_bluetooth_discovery_prefills_manual_setup(
             progress["context"]["title_placeholders"]["serial_number"]
             == fixture["lock_sn"][:9]
         )
+        assert progress["context"]["unique_id"] == "AA:BB:CC:DD:EE:FF"
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -225,37 +225,6 @@ async def test_bluetooth_discovery_prefills_manual_setup(
             if getattr(field, "schema", None) == "lock_sn"
         )
         assert lock_sn_field.default() == fixture["lock_sn"][:9]
-
-
-async def test_bluetooth_discovery_accepts_airbnk_payload_under_alternate_company_id(
-    hass: HomeAssistant,
-) -> None:
-    """Discovery parsing should not depend on a single BLE company ID."""
-
-    fixture = build_bootstrap_fixture()
-    discovery = SimpleNamespace(
-        address="AA:BB:CC:DD:EE:FF",
-        manufacturer_data={
-            0x1234: build_advertisement_payload(serial_fragment=fixture["lock_sn"][:9])
-        },
-        service_uuids=[AIRBNK_ADV_SERVICE_UUID],
-        rssi=-60,
-    )
-
-    with patch(
-        "homeassistant.config_entries.async_process_deps_reqs",
-        new=AsyncMock(return_value=None),
-    ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": config_entries.SOURCE_BLUETOOTH},
-            data=discovery,
-        )
-        assert result["type"] == "menu"
-        progress = hass.config_entries.flow.async_get(result["flow_id"])
-        assert progress["context"]["title_placeholders"]["name"] == (
-            f"Airbnk lock {fixture['lock_sn'][:9]}"
-        )
 
 
 async def test_cloud_flow_keeps_email_after_verification_code_request_failure(
@@ -373,35 +342,22 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
 
 
 def test_manifest_bluetooth_matchers_cover_company_id_and_fallback_paths() -> None:
-    """Manifest discovery should not rely on only one BLE company ID."""
+    """Manifest discovery should use the specific vendor matcher."""
 
     bluetooth_matchers = [matcher for matcher in _load_manifest()["bluetooth"]]
 
+    assert bluetooth_matchers == [
+        {
+            "connectable": True,
+            "manufacturer_data_start": [186, 186],
+            "manufacturer_id": MANUFACTURER_ID_AIRBNK,
+        }
+    ]
     assert {
         "connectable": True,
         "manufacturer_data_start": [186, 186],
         "manufacturer_id": MANUFACTURER_ID_AIRBNK,
     } in bluetooth_matchers
-    assert {
-        "connectable": True,
-        "service_uuid": AIRBNK_ADV_SERVICE_UUID,
-    } in bluetooth_matchers
-
-    local_name_patterns = {
-        matcher["local_name"]
-        for matcher in bluetooth_matchers
-        if "local_name" in matcher
-    }
-    assert local_name_patterns >= {
-        "Airbnk*",
-        "WeHere*",
-        "B100*",
-        "M300*",
-        "M500*",
-        "M510*",
-        "M530*",
-        "M531*",
-    }
 
 
 def _load_manifest() -> dict:

@@ -6,42 +6,6 @@
       "connectable": true,
       "manufacturer_data_start": [186, 186],
       "manufacturer_id": 47802
-    },
-    {
-      "connectable": true,
-      "service_uuid": "0000abab-0000-1000-8000-00805f9b34fb"
-    },
-    {
-      "connectable": true,
-      "local_name": "Airbnk*"
-    },
-    {
-      "connectable": true,
-      "local_name": "WeHere*"
-    },
-    {
-      "connectable": true,
-      "local_name": "B100*"
-    },
-    {
-      "connectable": true,
-      "local_name": "M300*"
-    },
-    {
-      "connectable": true,
-      "local_name": "M500*"
-    },
-    {
-      "connectable": true,
-      "local_name": "M510*"
-    },
-    {
-      "connectable": true,
-      "local_name": "M530*"
-    },
-    {
-      "connectable": true,
-      "local_name": "M531*"
     }
   ],
   "codeowners": ["@Jason-Morcos"],
