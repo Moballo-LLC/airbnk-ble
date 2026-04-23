@@ -165,3 +165,43 @@ async def test_cloud_flow_prefers_matching_discovered_lock(
         assert result["type"] == "create_entry"
         assert result["data"][CONF_LOCK_SN] == fixture["lock_sn"]
         assert result["data"][CONF_MAC_ADDRESS] == "AA:BB:CC:DD:EE:FF"
+
+
+async def test_bluetooth_discovery_prefills_manual_setup(
+    hass: HomeAssistant,
+) -> None:
+    """Bluetooth discovery should carry the detected lock into manual setup."""
+
+    fixture = build_bootstrap_fixture()
+    discovery = SimpleNamespace(
+        address="AA:BB:CC:DD:EE:FF",
+        manufacturer_data={
+            0xBABA: build_advertisement_payload(serial_fragment=fixture["lock_sn"][:9])
+        },
+        rssi=-60,
+    )
+
+    with patch(
+        "homeassistant.config_entries.async_process_deps_reqs",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_BLUETOOTH},
+            data=discovery,
+        )
+        assert result["type"] == "menu"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"next_step_id": "manual"},
+        )
+
+        assert result["type"] == "form"
+        assert result["step_id"] == "manual"
+        lock_sn_field = next(
+            field
+            for field in result["data_schema"].schema
+            if getattr(field, "schema", None) == "lock_sn"
+        )
+        assert lock_sn_field.default() == fixture["lock_sn"][:9]

@@ -93,6 +93,8 @@ You should be able to open `Settings -> Devices & Services -> Bluetooth` and see
 
 If you cannot do that yet, fix Bluetooth first. This integration depends on Home Assistant Bluetooth and does not replace it.
 
+If Bluetooth is healthy and your lock is nearby, Home Assistant may also discover the lock automatically and show `Airbnk BLE` in the discovered integrations list. That auto-discovery only helps when Home Assistant has a connectable BLE path to the lock.
+
 ### Step 2: Add `Airbnk BLE`
 
 Once Bluetooth is working:
