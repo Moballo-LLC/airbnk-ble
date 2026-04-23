@@ -40,7 +40,6 @@ from .const import (
     CONF_LOCK_ICON,
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
-    CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
     CONF_RETRY_COUNT,
     CONF_REVERSE_COMMANDS,
     CONF_SUPPORTS_REMOTE_LOCK,
@@ -129,9 +128,6 @@ class AirbnkLockRuntime:
         self.lock_sn = str(entry.data[CONF_LOCK_SN])
         self.name = str(options[CONF_NAME])
         self.lock_icon = str(options[CONF_LOCK_ICON])
-        self.publish_diagnostic_entities = bool(
-            options[CONF_PUBLISH_DIAGNOSTIC_ENTITIES]
-        )
         self.reverse_commands = bool(options[CONF_REVERSE_COMMANDS])
         self.supports_remote_lock = bool(options[CONF_SUPPORTS_REMOTE_LOCK])
         self.retry_count = int(options[CONF_RETRY_COUNT])

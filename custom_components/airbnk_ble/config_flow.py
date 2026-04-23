@@ -14,6 +14,7 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.const import CONF_EMAIL, CONF_NAME
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 
 from .airbnk import (
     AirbnkProtocolError,
@@ -45,7 +46,6 @@ from .const import (
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
     CONF_NEW_SNINFO,
-    CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
     CONF_RETRY_COUNT,
     CONF_REVERSE_COMMANDS,
     CONF_SUPPORTS_REMOTE_LOCK,
@@ -54,7 +54,6 @@ from .const import (
     DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
     DEFAULT_LOCK_ICON,
     DEFAULT_NAME,
-    DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
     DEFAULT_RETRY_COUNT,
     DEFAULT_REVERSE_COMMANDS,
     DEFAULT_UNAVAILABLE_AFTER,
@@ -69,6 +68,22 @@ CONF_AUTH_CODE = "auth_code"
 CONF_SELECTED_LOCK = "selected_lock"
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _name_selector() -> selector.TextSelector:
+    """Build the selector used for editable lock names."""
+
+    return selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+    )
+
+
+def _lock_icon_selector() -> selector.IconSelector:
+    """Build the selector used for optional lock icon overrides."""
+
+    return selector.IconSelector(
+        selector.IconSelectorConfig(placeholder="mdi:lock-outline")
+    )
 
 
 class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -331,18 +346,12 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 try:
                     entry_options = build_entry_options(
-                    name=str(user_input[CONF_NAME]).strip(),
-                    lock_model=self._prepared_bootstrap.lock_model,
-                    lock_icon=str(user_input.get(CONF_LOCK_ICON, "")).strip(),
-                    publish_diagnostic_entities=bool(
-                        user_input.get(
-                            CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-                            DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
-                        )
-                    ),
-                    reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
-                    supports_remote_lock=bool(
-                        user_input[CONF_SUPPORTS_REMOTE_LOCK]
+                        name=str(user_input[CONF_NAME]).strip(),
+                        lock_model=self._prepared_bootstrap.lock_model,
+                        lock_icon=str(user_input.get(CONF_LOCK_ICON, "")).strip(),
+                        reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
+                        supports_remote_lock=bool(
+                            user_input[CONF_SUPPORTS_REMOTE_LOCK]
                         ),
                         retry_count=int(user_input[CONF_RETRY_COUNT]),
                         command_timeout=int(user_input[CONF_COMMAND_TIMEOUT]),
@@ -693,12 +702,6 @@ class AirbnkBleOptionsFlow(config_entries.OptionsFlowWithReload):
                     name=str(user_input[CONF_NAME]).strip(),
                     lock_model=str(self.config_entry.data[CONF_LOCK_MODEL]),
                     lock_icon=str(user_input.get(CONF_LOCK_ICON, "")).strip(),
-                    publish_diagnostic_entities=bool(
-                        user_input.get(
-                            CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-                            DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
-                        )
-                    ),
                     reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
                     supports_remote_lock=bool(user_input[CONF_SUPPORTS_REMOTE_LOCK]),
                     retry_count=int(user_input[CONF_RETRY_COUNT]),
@@ -736,18 +739,11 @@ class AirbnkBleOptionsFlow(config_entries.OptionsFlowWithReload):
 
         return vol.Schema(
             {
-                vol.Required(CONF_NAME, default=values[CONF_NAME]): str,
+                vol.Required(CONF_NAME, default=values[CONF_NAME]): _name_selector(),
                 vol.Optional(
                     CONF_LOCK_ICON,
                     default=values.get(CONF_LOCK_ICON, DEFAULT_LOCK_ICON),
-                ): str,
-                vol.Optional(
-                    CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-                    default=values.get(
-                        CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-                        DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
-                    ),
-                ): bool,
+                ): _lock_icon_selector(),
                 vol.Optional(
                     CONF_REVERSE_COMMANDS,
                     default=values[CONF_REVERSE_COMMANDS],
@@ -790,18 +786,14 @@ def _confirm_lock_schema(
     model_profile = MODEL_PROFILE_BY_KEY[profile_key]
 
     schema: dict[Any, Any] = {
-        vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, name)): str,
+        vol.Required(
+            CONF_NAME,
+            default=user_input.get(CONF_NAME, name),
+        ): _name_selector(),
         vol.Optional(
             CONF_LOCK_ICON,
             default=user_input.get(CONF_LOCK_ICON, DEFAULT_LOCK_ICON),
-        ): str,
-        vol.Optional(
-            CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-            default=user_input.get(
-                CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-                DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
-            ),
-        ): bool,
+        ): _lock_icon_selector(),
     }
 
     if candidates:

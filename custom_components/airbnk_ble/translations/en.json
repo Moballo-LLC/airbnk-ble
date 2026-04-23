@@ -59,30 +59,28 @@
         "title": "Finish setup",
         "description": "Configure the local Bluetooth settings for serial {serial} ({model}).",
         "data": {
-          "name": "Name",
-          "lock_icon": "Custom icon (mdi:...)",
-          "publish_diagnostic_entities": "Publish extra diagnostic entities",
-          "discovered_address": "Discovered Bluetooth address",
-          "mac_address": "Manual MAC address",
-          "reverse_commands": "Reverse lock and unlock commands",
-          "supports_remote_lock": "Enable remote lock command",
-          "retry_count": "Command retry count",
-          "command_timeout": "Command timeout (seconds)",
-          "connectivity_probe_interval": "Connectivity probe interval (seconds, 0 disables)",
-          "unavailable_after": "Unavailable after (seconds)"
+          "name": "Lock name",
+          "lock_icon": "Custom lock icon",
+          "discovered_address": "Detected Bluetooth address",
+          "mac_address": "Bluetooth address (manual)",
+          "reverse_commands": "Swap lock and unlock commands",
+          "supports_remote_lock": "Use remote lock command",
+          "retry_count": "Retry attempts",
+          "command_timeout": "Command timeout",
+          "connectivity_probe_interval": "Connectivity check interval",
+          "unavailable_after": "Mark unavailable after"
         },
         "data_description": {
-          "name": "Friendly lock name shown in Home Assistant.",
-          "lock_icon": "Optional Material Design icon. Leave blank to use the standard lock icons. Example: mdi:mailbox-up-outline restores the old mailbox style.",
-          "publish_diagnostic_entities": "Battery and Battery Low stay available either way. Enable this to also publish extra Airbnk / WeHere diagnostic entities such as Connectivity, signal strength, and battery voltage.",
-          "discovered_address": "Choose the Bluetooth address Home Assistant discovered for this lock whenever possible.",
-          "mac_address": "Only needed when discovery could not automatically match the lock.",
-          "reverse_commands": "Enable this only if lock and unlock appear reversed on your hardware.",
-          "supports_remote_lock": "Enable this only for models that support a distinct remote lock command.",
-          "retry_count": "How many additional BLE command attempts Home Assistant should make after the first try.",
-          "command_timeout": "How long Home Assistant should wait for each BLE command attempt before failing it.",
-          "connectivity_probe_interval": "Optional active BLE reachability probe interval. Set to 0 to disable background probes.",
-          "unavailable_after": "How long the lock may stay quiet before Home Assistant marks its state unavailable."
+          "name": "Friendly name shown for this lock in Home Assistant.",
+          "lock_icon": "Optional icon override for this lock in Home Assistant. Leave it empty to keep the default state-aware lock icons, or pick a mailbox icon to restore the old mailbox look.",
+          "discovered_address": "Prefer the Bluetooth address Home Assistant has already discovered for this lock.",
+          "mac_address": "Only needed if Home Assistant could not match this lock automatically.",
+          "reverse_commands": "Turn this on only if lock and unlock actions appear reversed on your hardware.",
+          "supports_remote_lock": "Turn this on only for models that support a separate remote lock command.",
+          "retry_count": "How many extra BLE command attempts Home Assistant should make after the first try.",
+          "command_timeout": "How long Home Assistant should wait for each BLE command attempt before giving up.",
+          "connectivity_probe_interval": "Optional background BLE reachability check. Set this to 0 to disable active probing.",
+          "unavailable_after": "How long the lock can stay quiet before Home Assistant marks it unavailable."
         }
       },
       "reconfigure": {
@@ -159,26 +157,24 @@
       "init": {
         "title": "Airbnk BLE options",
         "data": {
-          "name": "Name",
-          "lock_icon": "Custom icon (mdi:...)",
-          "publish_diagnostic_entities": "Publish extra diagnostic entities",
-          "reverse_commands": "Reverse lock and unlock commands",
-          "supports_remote_lock": "Enable remote lock command",
-          "retry_count": "Command retry count",
-          "command_timeout": "Command timeout (seconds)",
-          "connectivity_probe_interval": "Connectivity probe interval (seconds, 0 disables)",
-          "unavailable_after": "Unavailable after (seconds)"
+          "name": "Lock name",
+          "lock_icon": "Custom lock icon",
+          "reverse_commands": "Swap lock and unlock commands",
+          "supports_remote_lock": "Use remote lock command",
+          "retry_count": "Retry attempts",
+          "command_timeout": "Command timeout",
+          "connectivity_probe_interval": "Connectivity check interval",
+          "unavailable_after": "Mark unavailable after"
         },
         "data_description": {
-          "name": "Friendly lock name shown in Home Assistant.",
-          "lock_icon": "Optional Material Design icon. Leave blank to use the standard lock icons. Example: mdi:mailbox-up-outline restores the old mailbox style.",
-          "publish_diagnostic_entities": "Battery and Battery Low stay available either way. Enable this to also publish extra Airbnk / WeHere diagnostic entities such as Connectivity, signal strength, and battery voltage.",
-          "reverse_commands": "Enable this only if lock and unlock appear reversed on your hardware.",
-          "supports_remote_lock": "Enable this only for models that support a distinct remote lock command.",
-          "retry_count": "How many additional BLE command attempts Home Assistant should make after the first try.",
-          "command_timeout": "How long Home Assistant should wait for each BLE command attempt before failing it.",
-          "connectivity_probe_interval": "Optional active BLE reachability probe interval. Set to 0 to disable background probes.",
-          "unavailable_after": "How long the lock may stay quiet before Home Assistant marks its state unavailable."
+          "name": "Friendly name shown for this lock in Home Assistant.",
+          "lock_icon": "Optional icon override for this lock in Home Assistant. Leave it empty to keep the default state-aware lock icons, or pick a mailbox icon to restore the old mailbox look.",
+          "reverse_commands": "Turn this on only if lock and unlock actions appear reversed on your hardware.",
+          "supports_remote_lock": "Turn this on only for models that support a separate remote lock command.",
+          "retry_count": "How many extra BLE command attempts Home Assistant should make after the first try.",
+          "command_timeout": "How long Home Assistant should wait for each BLE command attempt before giving up.",
+          "connectivity_probe_interval": "Optional background BLE reachability check. Set this to 0 to disable active probing.",
+          "unavailable_after": "How long the lock can stay quiet before Home Assistant marks it unavailable."
         }
       }
     },

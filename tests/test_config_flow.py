@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant import config_entries
 from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import selector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.airbnk_ble import async_setup_entry
@@ -19,7 +20,6 @@ from custom_components.airbnk_ble.cloud_api import (
 from custom_components.airbnk_ble.const import (
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
-    CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
     DOMAIN,
     MANUFACTURER_ID_AIRBNK,
 )
@@ -81,7 +81,6 @@ async def test_manual_flow_creates_entry_without_raw_bootstrap_secrets(
         assert "name" not in result["data"]
         assert result["options"]["name"] == "Front Gate"
         assert result["options"]["lock_icon"] == "mdi:mailbox-up-outline"
-        assert result["options"][CONF_PUBLISH_DIAGNOSTIC_ENTITIES] is False
 
 
 async def test_cloud_flow_prefers_matching_discovered_lock(
@@ -299,7 +298,6 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
         options={
             "name": "Front Gate",
             "lock_icon": "mdi:mailbox-up-outline",
-            "publish_diagnostic_entities": False,
             "reverse_commands": False,
             "supports_remote_lock": False,
             "retry_count": 3,
@@ -341,6 +339,14 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
         if getattr(field, "schema", None) == "lock_icon"
     )
     assert lock_icon_field.default() == "mdi:mailbox-up-outline"
+    assert isinstance(
+        result["data_schema"].schema[lock_icon_field],
+        selector.IconSelector,
+    )
+    assert not any(
+        getattr(field, "schema", None) == "publish_diagnostic_entities"
+        for field in result["data_schema"].schema
+    )
 
     with (
         patch(
@@ -358,7 +364,6 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
             {
                 "name": "Front Door",
                 "lock_icon": "mdi:mailbox-up-outline",
-                "publish_diagnostic_entities": True,
                 "reverse_commands": True,
                 "supports_remote_lock": False,
                 "retry_count": 5,
@@ -372,7 +377,6 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
     assert entry.data["mac_address"] == "AA:BB:CC:DD:EE:FF"
     assert entry.options["name"] == "Front Door"
     assert entry.options["lock_icon"] == "mdi:mailbox-up-outline"
-    assert entry.options["publish_diagnostic_entities"] is True
     assert entry.options["retry_count"] == 5
     assert entry.title == "Front Door"
 

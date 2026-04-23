@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
@@ -71,11 +72,77 @@ async def test_async_setup_entry_normalizes_legacy_entry_data(
     runtime_cls.assert_called_once()
     update_entry.assert_called_once()
     assert update_entry.call_args.kwargs["options"]["name"] == "Front Gate"
-    assert (
-        update_entry.call_args.kwargs["options"]["publish_diagnostic_entities"]
-        is False
-    )
     assert entry.runtime_data is runtime
+
+
+async def test_async_setup_entry_removes_retired_debug_entities(
+    hass: HomeAssistant,
+) -> None:
+    """Entry setup should prune stale raw-debug entities from the registry."""
+
+    fixture = build_bootstrap_fixture()
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Front Gate",
+        data={
+            "lock_sn": fixture["lock_sn"],
+            "lock_model": fixture["lock_model"],
+            "profile": "b100",
+            "mac_address": "AA:BB:CC:DD:EE:FF",
+            "manufacturer_key": fixture["manufacturer_key"].hex(),
+            "binding_key": fixture["binding_key"].hex(),
+            "battery_profile": [
+                {"voltage": 2.3, "percent": 0.0},
+                {"voltage": 2.9, "percent": 100.0},
+            ],
+            "hardware_version": "",
+        },
+        options={
+            "name": "Front Gate",
+            "lock_icon": "",
+            "reverse_commands": False,
+            "supports_remote_lock": False,
+            "retry_count": 3,
+            "command_timeout": 15,
+            "connectivity_probe_interval": 0,
+            "unavailable_after": 60,
+        },
+    )
+    registry = MagicMock()
+    runtime = MagicMock()
+    runtime.async_start = AsyncMock()
+    runtime.async_stop = MagicMock()
+
+    with (
+        patch(
+            "custom_components.airbnk_ble.AirbnkLockRuntime",
+            return_value=runtime,
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_forward_entry_setups",
+            AsyncMock(return_value=None),
+        ),
+        patch("custom_components.airbnk_ble.er.async_get", return_value=registry),
+        patch(
+            "custom_components.airbnk_ble.er.async_entries_for_config_entry",
+            return_value=[
+                SimpleNamespace(
+                    unique_id=f"{fixture['lock_sn']}_advert_state_bits",
+                    entity_id="sensor.front_gate_advert_state_bits",
+                ),
+                SimpleNamespace(
+                    unique_id=f"{fixture['lock_sn']}_battery",
+                    entity_id="sensor.front_gate_battery",
+                ),
+            ],
+        ),
+    ):
+        assert await async_setup_entry(hass, entry) is True
+
+    registry.async_remove.assert_called_once_with(
+        "sensor.front_gate_advert_state_bits"
+    )
 
 
 async def test_async_unload_entry_delegates_to_config_entries(

@@ -25,10 +25,12 @@ async def async_setup_entry(
     """Set up the Airbnk binary sensors."""
 
     runtime = entry.runtime_data
-    entities: list[BinarySensorEntity] = [AirbnkBatteryLowBinarySensor(runtime)]
-    if runtime.publish_diagnostic_entities:
-        entities.append(AirbnkConnectivityBinarySensor(runtime))
-    async_add_entities(entities)
+    async_add_entities(
+        [
+            AirbnkBatteryLowBinarySensor(runtime),
+            AirbnkConnectivityBinarySensor(runtime),
+        ]
+    )
 
 
 class AirbnkBatteryLowBinarySensor(AirbnkBaseEntity, BinarySensorEntity):
@@ -61,6 +63,7 @@ class AirbnkConnectivityBinarySensor(AirbnkBaseEntity, BinarySensorEntity):
     _attr_name = "Connectivity"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, runtime) -> None:
         super().__init__(runtime)

@@ -108,11 +108,8 @@ async def async_setup_entry(
     """Set up the Airbnk sensors."""
 
     runtime = entry.runtime_data
-    descriptions = list(BASE_SENSORS)
-    if runtime.publish_diagnostic_entities:
-        descriptions.extend(OPTIONAL_DIAGNOSTIC_SENSORS)
     async_add_entities(
-        [AirbnkBleSensor(runtime, description) for description in descriptions]
+        [AirbnkBleSensor(runtime, description) for description in SENSORS]
     )
 
 

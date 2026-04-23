@@ -45,7 +45,6 @@ from .const import (
     CONF_MANUFACTURER_KEY,
     CONF_NEW_SNINFO,
     CONF_PROFILE,
-    CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
     CONF_RETRY_COUNT,
     CONF_REVERSE_COMMANDS,
     CONF_SUPPORTS_REMOTE_LOCK,
@@ -55,7 +54,6 @@ from .const import (
     DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
     DEFAULT_LOCK_ICON,
     DEFAULT_NAME,
-    DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
     DEFAULT_RETRY_COUNT,
     DEFAULT_REVERSE_COMMANDS,
     DEFAULT_UNAVAILABLE_AFTER,
@@ -143,12 +141,6 @@ def validate_entry_options(
     normalized: dict[str, Any] = {
         CONF_NAME: str(_value(CONF_NAME, DEFAULT_NAME)).strip() or DEFAULT_NAME,
         CONF_LOCK_ICON: normalize_lock_icon(_value(CONF_LOCK_ICON, DEFAULT_LOCK_ICON)),
-        CONF_PUBLISH_DIAGNOSTIC_ENTITIES: bool(
-            _value(
-                CONF_PUBLISH_DIAGNOSTIC_ENTITIES,
-                DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
-            )
-        ),
         CONF_REVERSE_COMMANDS: bool(
             _value(CONF_REVERSE_COMMANDS, DEFAULT_REVERSE_COMMANDS)
         ),
@@ -176,7 +168,6 @@ def build_entry_options(
     name: str | None,
     lock_model: str,
     lock_icon: str | None = DEFAULT_LOCK_ICON,
-    publish_diagnostic_entities: bool = DEFAULT_PUBLISH_DIAGNOSTIC_ENTITIES,
     reverse_commands: bool = DEFAULT_REVERSE_COMMANDS,
     supports_remote_lock: bool | None = None,
     retry_count: int = DEFAULT_RETRY_COUNT,
@@ -189,7 +180,6 @@ def build_entry_options(
     raw_options: dict[str, Any] = {
         CONF_NAME: (name or DEFAULT_NAME).strip() or DEFAULT_NAME,
         CONF_LOCK_ICON: normalize_lock_icon(lock_icon),
-        CONF_PUBLISH_DIAGNOSTIC_ENTITIES: bool(publish_diagnostic_entities),
         CONF_REVERSE_COMMANDS: bool(reverse_commands),
         CONF_RETRY_COUNT: int(retry_count),
         CONF_COMMAND_TIMEOUT: int(command_timeout),

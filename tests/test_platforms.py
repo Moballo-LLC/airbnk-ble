@@ -50,7 +50,6 @@ def _build_runtime():
     return SimpleNamespace(
         lock_sn="B100LOCK00000001",
         lock_icon="",
-        publish_diagnostic_entities=False,
         device_info={"identifiers": {(DOMAIN, "B100LOCK00000001")}},
         state=state,
         supports_remote_lock=False,
@@ -67,43 +66,9 @@ def _build_runtime():
 
 
 async def test_platform_setup_creates_expected_entities() -> None:
-    """Useful battery entities should remain even with extra diagnostics off."""
+    """Useful primary and optional diagnostic entities should all be registered."""
 
     runtime = _build_runtime()
-    entry = MockConfigEntry(domain=DOMAIN, title="Front Gate", data={})
-    entry.runtime_data = runtime
-
-    added_binary = []
-    await binary_sensor.async_setup_entry(
-        None,
-        entry,
-        lambda entities: added_binary.extend(entities),
-    )
-    assert len(added_binary) == 1
-
-    added_lock = []
-    await lock.async_setup_entry(
-        None,
-        entry,
-        lambda entities: added_lock.extend(entities),
-    )
-    assert len(added_lock) == 1
-
-    added_sensor = []
-    await sensor.async_setup_entry(
-        None,
-        entry,
-        lambda entities: added_sensor.extend(entities),
-    )
-    assert len(added_sensor) == 1
-    assert added_sensor[0]._description.key == "battery"  # noqa: SLF001
-
-
-async def test_platform_setup_creates_diagnostic_entities_when_enabled() -> None:
-    """Opting in should publish the diagnostic sensor and binary-sensor surface."""
-
-    runtime = _build_runtime()
-    runtime.publish_diagnostic_entities = True
     entry = MockConfigEntry(domain=DOMAIN, title="Front Gate", data={})
     entry.runtime_data = runtime
 
@@ -114,6 +79,14 @@ async def test_platform_setup_creates_diagnostic_entities_when_enabled() -> None
         lambda entities: added_binary.extend(entities),
     )
     assert len(added_binary) == 2
+
+    added_lock = []
+    await lock.async_setup_entry(
+        None,
+        entry,
+        lambda entities: added_lock.extend(entities),
+    )
+    assert len(added_lock) == 1
 
     added_sensor = []
     await sensor.async_setup_entry(
@@ -155,6 +128,7 @@ async def test_entities_expose_runtime_state_and_commands() -> None:
     connectivity = binary_sensor.AirbnkConnectivityBinarySensor(runtime)
     assert connectivity.available is True
     assert connectivity.is_on is True
+    assert connectivity.entity_registry_enabled_default is False
     assert connectivity.extra_state_attributes["fresh_state_available"] is False
     assert connectivity.extra_state_attributes["last_probe_successful"] is True
 
