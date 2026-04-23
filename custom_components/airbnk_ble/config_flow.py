@@ -107,6 +107,14 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._preferred_address = normalize_mac_address(discovery_info.address)
         self._preferred_lock_sn = parsed.serial_number
+        self.context["title_placeholders"] = {
+            "name": _format_discovery_title(
+                parsed.serial_number,
+                discovery_info.address,
+            ),
+            "serial_number": parsed.serial_number,
+            "address": self._preferred_address,
+        }
         for entry in self._async_current_entries():
             if (
                 str(entry.data.get(CONF_MAC_ADDRESS, "")).upper()
@@ -852,3 +860,12 @@ def _parse_discovery_info(
         return parse_advertisement_data(bytes(manufacturer_payload))
     except AirbnkProtocolError:
         return None
+
+
+def _format_discovery_title(serial_number: str, address: str) -> str:
+    """Build a more helpful discovery title for Home Assistant's UI."""
+
+    serial_fragment = serial_number.strip().upper()
+    if serial_fragment:
+        return f"Airbnk lock {serial_fragment}"
+    return f"Airbnk lock {normalize_mac_address(address)}"

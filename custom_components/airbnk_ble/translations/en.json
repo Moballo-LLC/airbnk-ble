@@ -1,6 +1,7 @@
 {
   "title": "Airbnk BLE",
   "config": {
+    "flow_title": "{name}",
     "step": {
       "cloud": {
         "title": "Connect to Airbnk cloud",
