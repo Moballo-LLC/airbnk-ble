@@ -32,10 +32,6 @@ Plus-address email aliases such as `name+airbnk@example.com` are supported for c
 
 Provide `lock_sn`, `newSninfo`, and `appKey` directly. The raw values are used only during setup to derive local keys and are not stored afterwards.
 
-### Import From `morcos_airbnk_ble`
-
-If you are moving from the original private `morcos_airbnk_ble` component, remove that custom component first, then use the `Import legacy Morcos entry` setup path in `Airbnk BLE`. The importer converts the old stored `appKey` / `newSninfo` / `voltage_thresholds` data into derived local keys plus the new battery breakpoint format, so your existing B100 behavior carries forward without keeping the raw bootstrap secrets.
-
 ## Features
 
 - Native `lock` entity with `open` support
@@ -49,18 +45,12 @@ If you are moving from the original private `morcos_airbnk_ble` component, remov
 
 This project builds on two streams of prior work:
 
-- The local BLE runtime and lock behavior started from the original private `morcos_airbnk_ble` custom component and was generalized into this standalone integration.
+- The local BLE runtime and lock behavior started from an earlier private BLE integration and was generalized into this standalone integration.
 - The cloud login and bootstrap acquisition flow was adapted from [rospogrigio/airbnk_mqtt](https://github.com/rospogrigio/airbnk_mqtt), which helped validate the Airbnk / WeHere auth path and bootstrap handling. This repository stays local-first and stores only derived local keys after setup.
 
 ## Support Scope
 
 Only the `B100` has been tested end to end against real hardware so far.
-
-## Migration Notes
-
-- The HACS package now includes a dedicated importer for legacy `morcos_airbnk_ble` config entries.
-- Legacy 3-threshold battery tuning is preserved as the same smooth `0 -> 50 -> 100` curve when it is converted into the richer breakpoint-based battery profile.
-- The public cloud login and device bootstrap flow was reviewed against both [rospogrigio/airbnk_cloud](https://github.com/rospogrigio/airbnk_cloud) and [rospogrigio/airbnk_mqtt](https://github.com/rospogrigio/airbnk_mqtt), while the BLE runtime behavior remains anchored to the proven private B100 component.
 
 ## Development
 

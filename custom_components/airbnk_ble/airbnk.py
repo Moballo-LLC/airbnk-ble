@@ -438,7 +438,7 @@ def build_entry_data(
 
 
 def migrate_legacy_entry_data(data: Mapping[str, Any]) -> dict[str, Any]:
-    """Convert the private Morcos entry format into the public storage format."""
+    """Convert an older local-entry format into the public storage format."""
 
     bootstrap = decrypt_bootstrap(
         str(data[CONF_LOCK_SN]).strip(),

@@ -85,8 +85,8 @@ def test_operation_code_generation_is_stable() -> None:
     assert operation[:3] == b"\xaa\x10\x1a"
 
 
-def test_legacy_morcos_entry_data_migrates_without_changing_b100_curve() -> None:
-    """Legacy Morcos entries should normalize into the public storage format."""
+def test_legacy_entry_data_migrates_without_changing_b100_curve() -> None:
+    """Older local entries should normalize into the public storage format."""
 
     fixture = build_bootstrap_fixture()
     legacy_data = {

@@ -5,7 +5,6 @@ from __future__ import annotations
 from homeassistant.const import Platform
 
 DOMAIN = "airbnk_ble"
-LEGACY_DOMAIN = "morcos_airbnk_ble"
 
 PLATFORMS: list[Platform] = [
     Platform.LOCK,
@@ -42,7 +41,6 @@ DEFAULT_SUPPORTS_REMOTE_LOCK = False
 DEFAULT_UNAVAILABLE_AFTER = 60
 
 SETUP_MODE_CLOUD = "cloud"
-SETUP_MODE_IMPORT_MORCOS = "import_morcos"
 SETUP_MODE_MANUAL = "manual"
 
 DISCOVERED_ADDRESS_MANUAL = "__manual__"

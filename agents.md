@@ -23,8 +23,8 @@
 - Keep per-lock config entries.
 - Prefer Bluetooth discovery and serial matching over manual MAC entry whenever possible.
 - Preserve the richer battery-profile model; do not collapse it back to a simple 3-point curve.
-- When importing from `morcos_airbnk_ble`, preserve the legacy B100 battery behavior by translating the old 3-threshold curve into equivalent `0 -> 50 -> 100` breakpoints before storage.
-- Treat migration from the old private component as a first-class use case; compatibility with legacy Morcos entry data matters as much as fresh cloud/manual setup.
+- Preserve older 3-threshold B100 battery behavior by translating it into equivalent `0 -> 50 -> 100` breakpoints before storage whenever older entry data is encountered.
+- Treat compatibility with older local entry data as important, but keep the public package surface generic and reusable.
 
 ## Repo Workflow
 
