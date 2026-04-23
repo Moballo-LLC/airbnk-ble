@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.0.5 - 2026-04-23
+
+- Moved the cloud verification-code and auth flow back onto Home Assistant's native aiohttp client stack after the earlier `requests` detour did not resolve real-world timeout failures
+- Added a dedicated IPv4-only Home Assistant client-session fallback for Airbnk / WeHere cloud calls when the shared session hits a connection timeout
+- Kept retry handling and sanitized transport errors while removing the test-only `types-requests` dependency that is no longer needed
+
 ## 1.0.4 - 2026-04-23
 
 - Restored narrow Bluetooth auto-discovery matching for Airbnk / WeHere locks by matching the Airbnk vendor ID or the known Airbnk advert service UUID instead of requiring a stricter manufacturer payload prefix

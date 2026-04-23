@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import functools
 import logging
+import socket
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlencode
 
-import requests
+from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.const import CONF_EMAIL
-from requests import RequestException
+from homeassistant.helpers.aiohttp_client import (
+    async_create_clientsession,
+    async_get_clientsession,
+)
 
 from .airbnk import AirbnkProtocolError, battery_profile_from_voltage_points
 
@@ -23,8 +25,8 @@ AIRBNK_HEADERS = {
     "user-agent": "okhttp/3.12.0",
     "Accept-Encoding": "gzip, deflate",
 }
-AIRBNK_TIMEOUT = (10, 30)
 AIRBNK_RETRY_ATTEMPTS = 2
+AIRBNK_TIMEOUT = ClientTimeout(total=45, connect=20, sock_connect=20, sock_read=30)
 
 
 class AirbnkCloudError(RuntimeError):
@@ -57,6 +59,8 @@ class AirbnkCloudClient:
 
     def __init__(self, hass) -> None:
         self._hass = hass
+        self._session = async_get_clientsession(hass)
+        self._ipv4_session: ClientSession | None = None
 
     async def async_request_verification_code(self, email: str) -> None:
         """Request an email verification code."""
@@ -194,18 +198,7 @@ class AirbnkCloudClient:
     ) -> dict[str, Any]:
         """Call an Airbnk cloud endpoint and validate the response."""
 
-        url = f"{AIRBNK_CLOUD_URL}{path}?{urlencode(params)}"
-        response = await self._async_request(method, url)
-
-        if response.status_code != 200:
-            raise AirbnkCloudError(
-                f"Airbnk cloud request failed with HTTP {response.status_code}"
-            )
-
-        try:
-            payload = response.json()
-        except ValueError as err:
-            raise AirbnkCloudError("Airbnk cloud returned invalid JSON") from err
+        payload = await self._async_request(method, path, params)
 
         if payload.get("code") != 200:
             raise AirbnkCloudError(
@@ -220,45 +213,110 @@ class AirbnkCloudClient:
             raise AirbnkCloudError("Airbnk cloud response did not include any data")
         return payload
 
-    async def _async_request(self, method: str, url: str) -> requests.Response:
-        """Perform an Airbnk HTTP request in the executor with retries."""
+    async def _async_request(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, str],
+    ) -> dict[str, Any]:
+        """Perform an Airbnk HTTP request with HA-managed client sessions."""
 
-        last_err: RequestException | None = None
-        endpoint = url.partition("?")[0]
-        for attempt in range(1, AIRBNK_RETRY_ATTEMPTS + 1):
-            try:
-                func = functools.partial(
-                    requests.request,
-                    method,
-                    url,
-                    headers=AIRBNK_HEADERS,
-                    timeout=AIRBNK_TIMEOUT,
-                )
-                return await self._hass.async_add_executor_job(func)
-            except RequestException as err:
-                last_err = err
-                if attempt == AIRBNK_RETRY_ATTEMPTS:
-                    break
-                _LOGGER.debug(
-                    "Retrying Airbnk cloud request after %s (%s/%s): %s",
-                    type(err).__name__,
-                    attempt,
-                    AIRBNK_RETRY_ATTEMPTS,
-                    endpoint,
-                )
+        last_err: Exception | None = None
+        endpoint = f"{AIRBNK_CLOUD_URL}{path}"
+
+        sessions: list[tuple[str, ClientSession]] = [("shared", self._session)]
+        for session_label, session in sessions:
+            for attempt in range(1, AIRBNK_RETRY_ATTEMPTS + 1):
+                try:
+                    async with session.request(
+                        method,
+                        endpoint,
+                        headers=AIRBNK_HEADERS,
+                        params=params,
+                        timeout=AIRBNK_TIMEOUT,
+                    ) as response:
+                        if response.status != 200:
+                            raise AirbnkCloudError(
+                                "Airbnk cloud request failed with HTTP "
+                                f"{response.status}"
+                            )
+                        try:
+                            return await response.json(content_type=None)
+                        except ValueError as err:
+                            raise AirbnkCloudError(
+                                "Airbnk cloud returned invalid JSON"
+                            ) from err
+                except (TimeoutError, ClientError) as err:
+                    last_err = err
+                    if attempt == AIRBNK_RETRY_ATTEMPTS:
+                        break
+                    _LOGGER.debug(
+                        "Retrying Airbnk cloud request via %s session after %s "
+                        "(%s/%s): %s",
+                        session_label,
+                        type(err).__name__,
+                        attempt,
+                        AIRBNK_RETRY_ATTEMPTS,
+                        endpoint,
+                    )
+
+        if isinstance(last_err, TimeoutError):
+            ipv4_session = await self._async_get_ipv4_session()
+            for attempt in range(1, AIRBNK_RETRY_ATTEMPTS + 1):
+                try:
+                    async with ipv4_session.request(
+                        method,
+                        endpoint,
+                        headers=AIRBNK_HEADERS,
+                        params=params,
+                        timeout=AIRBNK_TIMEOUT,
+                    ) as response:
+                        if response.status != 200:
+                            raise AirbnkCloudError(
+                                "Airbnk cloud request failed with HTTP "
+                                f"{response.status}"
+                            )
+                        try:
+                            return await response.json(content_type=None)
+                        except ValueError as err:
+                            raise AirbnkCloudError(
+                                "Airbnk cloud returned invalid JSON"
+                            ) from err
+                except (TimeoutError, ClientError) as err:
+                    last_err = err
+                    if attempt == AIRBNK_RETRY_ATTEMPTS:
+                        break
+                    _LOGGER.debug(
+                        "Retrying Airbnk cloud request via IPv4 session after %s "
+                        "(%s/%s): %s",
+                        type(err).__name__,
+                        attempt,
+                        AIRBNK_RETRY_ATTEMPTS,
+                        endpoint,
+                    )
 
         raise AirbnkCloudError(
             f"Could not reach the Airbnk cloud: {_describe_transport_error(last_err)}"
         ) from last_err
 
+    async def _async_get_ipv4_session(self) -> ClientSession:
+        """Return an HA-managed IPv4-only client session."""
 
-def _describe_transport_error(err: RequestException | None) -> str:
+        if self._ipv4_session is None or self._ipv4_session.closed:
+            self._ipv4_session = async_create_clientsession(
+                self._hass,
+                family=socket.AF_INET,
+            )
+        return self._ipv4_session
+
+
+def _describe_transport_error(err: Exception | None) -> str:
     """Return a log-safe description for a transport failure."""
 
     if err is None:
         return "Request failed"
-    if isinstance(err, requests.Timeout):
+    if isinstance(err, TimeoutError):
         return "Connection timeout"
-    if isinstance(err, requests.ConnectionError):
+    if isinstance(err, ClientError):
         return "Connection error"
     return type(err).__name__

@@ -24,10 +24,10 @@ rules:
   has_entity_name: done
   inject_websession:
     status: todo
-    comment: The future external communication library should accept an aiohttp or httpx client from Home Assistant instead of owning its own transport decisions.
+    comment: The integration uses Home Assistant managed aiohttp sessions today, but a future external communication library should also accept the injected HA client instead of owning its own transport decisions.
   reconfiguration_flow: done
   runtime_data: done
   async_dependency:
     status: todo
-    comment: The current custom integration keeps a requests-based cloud helper for reliability, but a Core-ready extraction should be fully asyncio-native.
+    comment: A future Core-ready extraction still needs to publish the Airbnk communication layer as a separate asyncio-native library.
   unique_config_entry: done
