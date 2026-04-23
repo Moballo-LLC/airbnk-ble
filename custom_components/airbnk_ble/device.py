@@ -6,21 +6,19 @@ import asyncio
 import logging
 import time
 from asyncio import Lock
-from asyncio import timeout as asyncio_timeout
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from bleak.exc import BleakError
-from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from homeassistant.components import bluetooth
 from homeassistant.const import CONF_NAME
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
+from pyairbnk import AirbnkBleClient
 
 from .airbnk import (
     AdvertisementData,
@@ -28,16 +26,14 @@ from .airbnk import (
     BootstrapData,
     StatusResponseData,
     calculate_battery_percentage,
-    generate_operation_code,
+    extract_manufacturer_payload,
     normalize_battery_profile,
     parse_advertisement_data,
     parse_status_response,
-    split_operation_frames,
     validate_entry_options,
 )
 from .const import (
     AIRBNK_STATUS_CHARACTERISTIC_UUID,
-    AIRBNK_WRITE_CHARACTERISTIC_UUID,
     CONF_BATTERY_PROFILE,
     CONF_COMMAND_TIMEOUT,
     CONF_CONNECTIVITY_PROBE_INTERVAL,
@@ -53,7 +49,6 @@ from .const import (
     LOCK_STATE_JAMMED,
     LOCK_STATE_LOCKED,
     LOCK_STATE_UNLOCKED,
-    MANUFACTURER_ID_AIRBNK,
     OPERATION_LOCK,
     OPERATION_UNLOCK,
 )
@@ -153,6 +148,7 @@ class AirbnkLockRuntime:
         self._callbacks: set[Callable[[], None]] = set()
         self._command_lock = Lock()
         self._operation: str | None = None
+        self._ble_client = AirbnkBleClient(self._ble_device_callback, name=self.name)
         self._last_known_ble_device: BLEDevice | None = None
         self._probe_task: asyncio.Task[None] | None = None
         self._unsub_ble_callback: CALLBACK_TYPE | None = None
@@ -470,70 +466,34 @@ class AirbnkLockRuntime:
     ) -> None:
         """Connect to the lock and send one command attempt."""
 
-        ble_device = self._current_connectable_ble_device()
-        if ble_device is None:
-            raise HomeAssistantError(
-                "No connectable Bluetooth device is currently available for "
-                f"{self.address}"
-            )
-        self._last_known_ble_device = ble_device
-
         operation_started = time.monotonic()
-        operation_code = generate_operation_code(
-            wire_operation,
-            self.state.lock_events or 0,
-            self.bootstrap,
-        )
-        frame_one, frame_two = split_operation_frames(operation_code)
-        connect_started = time.monotonic()
-        client = await establish_connection(
-            BleakClientWithServiceCache,
-            ble_device,
-            self.name,
-            max_attempts=1,
-            ble_device_callback=self._ble_device_callback,
-        )
-        connect_elapsed = time.monotonic() - connect_started
-        frame_one_elapsed = 0.0
-        frame_two_elapsed = 0.0
-        status_elapsed = 0.0
-
+        ble_device = self._current_connectable_ble_device()
+        if ble_device is not None:
+            self._last_known_ble_device = ble_device
         try:
-            async with asyncio_timeout(self.command_timeout):
-                frame_one_started = time.monotonic()
-                await client.write_gatt_char(
-                    AIRBNK_WRITE_CHARACTERISTIC_UUID,
-                    frame_one,
-                    response=True,
-                )
-                frame_one_elapsed = time.monotonic() - frame_one_started
-                frame_two_started = time.monotonic()
-                await client.write_gatt_char(
-                    AIRBNK_WRITE_CHARACTERISTIC_UUID,
-                    frame_two,
-                    response=True,
-                )
-                frame_two_elapsed = time.monotonic() - frame_two_started
-                status_started = time.monotonic()
-                await self._async_read_status_until_valid(client)
-                status_elapsed = time.monotonic() - status_started
-        except BleakError as err:
-            raise HomeAssistantError(
-                f"Bluetooth error while commanding {self.name}: {err}"
-            ) from err
-        finally:
-            if client.is_connected:
-                await client.disconnect()
+            result = await self._ble_client.async_send_operation(
+                operation=wire_operation,
+                current_lock_events=self.state.lock_events or 0,
+                bootstrap=self.bootstrap,
+                command_timeout=float(self.command_timeout),
+                status_update_callback=lambda parsed, payload_hex: (
+                    self._remember_status_debug(parsed, payload_hex=payload_hex)
+                ),
+            )
+        except Exception as err:
+            raise HomeAssistantError(str(err)) from err
+
+        self._apply_status_response(result.status)
 
         total_elapsed = time.monotonic() - operation_started
         self._log_command_timing(
             requested_operation=requested_operation,
             wire_operation=wire_operation,
             total_elapsed=total_elapsed,
-            connect_elapsed=connect_elapsed,
-            frame_one_elapsed=frame_one_elapsed,
-            frame_two_elapsed=frame_two_elapsed,
-            status_elapsed=status_elapsed,
+            connect_elapsed=0.0,
+            frame_one_elapsed=0.0,
+            frame_two_elapsed=0.0,
+            status_elapsed=0.0,
         )
 
     async def _async_read_status_until_valid(self, client: Any) -> None:
@@ -691,14 +651,7 @@ class AirbnkLockRuntime:
     ) -> bytes | None:
         """Extract the AirBnk manufacturer payload from a BLE advertisement."""
 
-        if payload := advertisement.manufacturer_data.get(MANUFACTURER_ID_AIRBNK):
-            return bytes(payload)
-
-        for payload in advertisement.manufacturer_data.values():
-            raw = bytes(payload)
-            if raw.startswith(b"\xba\xba"):
-                return raw
-        return None
+        return extract_manufacturer_payload(advertisement.manufacturer_data)
 
     def _current_connectable_ble_device(self) -> BLEDevice | None:
         """Return the best currently connectable BLE device for this lock."""
@@ -710,15 +663,10 @@ class AirbnkLockRuntime:
         )
         return device if device is not None else self._last_known_ble_device
 
-    def _ble_device_callback(self) -> BLEDevice:
+    def _ble_device_callback(self) -> BLEDevice | None:
         """Provide a BLE device to the retry connector."""
 
-        device = self._current_connectable_ble_device()
-        if device is None:
-            raise RuntimeError(
-                f"No connectable BLE device available for {self.address}"
-            )
-        return device
+        return self._current_connectable_ble_device()
 
     def _wire_operation_for(self, requested_operation: int) -> int:
         """Map requested lock/unlock intents to the on-wire AirBnk opcode."""
@@ -866,27 +814,18 @@ class AirbnkLockRuntime:
                 probe_timeout = min(
                     float(self.command_timeout), CONNECTIVITY_PROBE_TIMEOUT_SECONDS
                 )
-                async with asyncio_timeout(probe_timeout):
-                    client = await establish_connection(
-                        BleakClientWithServiceCache,
-                        ble_device,
-                        self.name,
-                        max_attempts=1,
-                        ble_device_callback=self._ble_device_callback,
+                await self._ble_client.async_probe_connectivity(
+                    command_timeout=probe_timeout
+                )
+                self.state.last_probe_successful = True
+                if not self.state.reachable:
+                    self.state.reachable = True
+                    _LOGGER.info(
+                        "Airbnk connectivity probe succeeded for %s after "
+                        "a stale advert gap",
+                        self.address,
                     )
-                try:
-                    self.state.last_probe_successful = True
-                    if not self.state.reachable:
-                        self.state.reachable = True
-                        _LOGGER.info(
-                            "Airbnk connectivity probe succeeded for %s after "
-                            "a stale advert gap",
-                            self.address,
-                        )
-                        self._notify_callbacks()
-                finally:
-                    if client.is_connected:
-                        await client.disconnect()
+                    self._notify_callbacks()
         except asyncio.CancelledError:
             raise
         except Exception as err:  # noqa: BLE001

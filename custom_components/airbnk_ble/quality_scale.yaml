@@ -8,7 +8,7 @@ rules:
   brands: done
   dependency_transparency:
     status: todo
-    comment: A future Home Assistant Core submission still requires extracting the Airbnk protocol and cloud communication into a separately published PyPI library with transparent public releases.
+    comment: The communication layer now lives in the external pyairbnk repository with public CI and release automation, but Home Assistant core readiness still requires publishing that dependency on PyPI instead of the current GitHub release URL bridge.
   common_modules: done
   config_flow: done
   config_flow_test_coverage: done
@@ -23,11 +23,9 @@ rules:
   entity_unique_id: done
   has_entity_name: done
   inject_websession:
-    status: todo
-    comment: The integration uses Home Assistant managed aiohttp sessions today, but a future external communication library should also accept the injected HA client instead of owning its own transport decisions.
+    status: done
   reconfiguration_flow: done
   runtime_data: done
   async_dependency:
-    status: todo
-    comment: A future Core-ready extraction still needs to publish the Airbnk communication layer as a separate asyncio-native library.
+    status: done
   unique_config_entry: done

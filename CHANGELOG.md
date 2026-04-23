@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.0.0 - 2026-04-23
+
+- Extracted the protocol, cloud, and active BLE transport logic into the new standalone `pyairbnk` repository under `Moballo-LLC`, keeping Home Assistant-specific setup, discovery, and entity orchestration in `Airbnk BLE`
+- Updated the integration to consume the external communication library instead of carrying its own duplicate protocol and cloud implementation
+- Added the first core-readiness bridge for the extracted dependency and updated contributor guidance around the split-library workflow
+
 ## 1.0.7 - 2026-04-23
 
 - Added a per-lock custom `mdi:` icon option in setup and the Settings UI, including mailbox-style state-aware icon handling for users who want the old mailbox visuals back

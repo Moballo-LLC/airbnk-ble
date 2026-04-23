@@ -38,5 +38,6 @@
 - Keep the custom integration close to Home Assistant core expectations where that does not harm HACS compatibility or the working `B100` path.
 - Prefer `ConfigEntry.data` only for connection/bootstrap material and `ConfigEntry.options` for user-tunable behavior.
 - Track core-readiness work in `custom_components/airbnk_ble/quality_scale.yaml`.
-- A future core submission still requires extracting the Airbnk communication logic into a separately published async Python library that satisfies Home Assistant dependency-transparency rules.
+- The extracted communication layer now lives in the separate `pyairbnk` repository; keep Home Assistant-specific orchestration in this repo and protocol/cloud/BLE transport logic there.
+- A future core submission still requires publishing that external dependency on PyPI instead of the current GitHub release URL bridge.
 - A future core submission also requires moving brand assets out of the local `brand/` directory and into `home-assistant/brands`.

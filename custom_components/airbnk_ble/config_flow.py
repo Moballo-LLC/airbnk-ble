@@ -21,6 +21,7 @@ from .airbnk import (
     build_entry_data,
     build_entry_options,
     decrypt_bootstrap,
+    extract_manufacturer_payload,
     normalize_mac_address,
     parse_advertisement_data,
     serial_numbers_match,
@@ -59,7 +60,6 @@ from .const import (
     DEFAULT_UNAVAILABLE_AFTER,
     DISCOVERED_ADDRESS_MANUAL,
     DOMAIN,
-    MANUFACTURER_ID_AIRBNK,
     SETUP_MODE_CLOUD,
     SETUP_MODE_MANUAL,
 )
@@ -910,13 +910,9 @@ def _parse_discovery_info(
 ):
     """Parse Bluetooth discovery info into an Airbnk advert when possible."""
 
-    manufacturer_payload = discovery_info.manufacturer_data.get(MANUFACTURER_ID_AIRBNK)
-    if manufacturer_payload is None:
-        for payload in discovery_info.manufacturer_data.values():
-            raw = bytes(payload)
-            if raw.startswith(b"\xba\xba"):
-                manufacturer_payload = raw
-                break
+    manufacturer_payload = extract_manufacturer_payload(
+        discovery_info.manufacturer_data
+    )
     if manufacturer_payload is None:
         return None
 

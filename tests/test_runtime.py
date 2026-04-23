@@ -243,7 +243,7 @@ async def test_runtime_probe_failure_marks_reachability_false(
     runtime.state.last_contact_monotonic = 0.0
 
     with patch(
-        "custom_components.airbnk_ble.device.establish_connection",
+        "pyairbnk.ble.establish_connection",
         AsyncMock(side_effect=HomeAssistantError("probe failed")),
     ):
         await runtime._async_probe_connectivity()  # noqa: SLF001

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import aiohttp
 import pytest
@@ -33,16 +33,28 @@ class _MockResponse:
         return self._payload
 
 
+def _build_client(
+    session,
+    *,
+    ipv4_session=None,
+):
+    """Construct a cloud client without creating real HA sessions."""
+
+    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
+    client._session = session  # noqa: SLF001
+    client._ipv4_session = ipv4_session  # noqa: SLF001
+    client._cloud_url = "https://wehereapi.seamooncloud.com"  # noqa: SLF001
+    client._app_version = AIRBNK_VERSION  # noqa: SLF001
+    return client
+
+
 async def test_request_verification_code_preserves_plus_addressing() -> None:
     """Verification-code requests should preserve '+' email aliases."""
 
     session = SimpleNamespace(
         request=MagicMock(return_value=_MockResponse({"code": 200}))
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     await client.async_request_verification_code("user+locks@example.com")
 
@@ -69,10 +81,7 @@ async def test_authenticate_preserves_plus_addressing() -> None:
             )
         )
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     result = await client.async_authenticate("user+locks@example.com", "123456")
 
@@ -116,10 +125,7 @@ async def test_get_locks_filters_incomplete_and_non_lock_devices() -> None:
             )
         )
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     locks = await client.async_get_locks(
         AirbnkCloudSession(
@@ -157,10 +163,7 @@ async def test_get_battery_profile_maps_voltage_curve() -> None:
             )
         )
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     profile = await client.async_get_battery_profile(
         AirbnkCloudSession(
@@ -186,10 +189,7 @@ async def test_async_call_raises_for_http_errors() -> None:
     session = SimpleNamespace(
         request=MagicMock(return_value=_MockResponse({"code": 500}, status=500))
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     with pytest.raises(AirbnkCloudError, match="HTTP 500"):
         await client._async_call("GET", "/test", {})  # noqa: SLF001
@@ -201,10 +201,7 @@ async def test_async_call_raises_for_missing_data() -> None:
     session = SimpleNamespace(
         request=MagicMock(return_value=_MockResponse({"code": 200}))
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     with pytest.raises(AirbnkCloudError, match="did not include any data"):
         await client._async_call("GET", "/test", {})  # noqa: SLF001
@@ -220,10 +217,7 @@ async def test_async_call_raises_with_info_field_message() -> None:
             )
         )
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     with pytest.raises(AirbnkCloudError, match="Update app:"):
         await client._async_call("POST", "/test", {}, expect_data=False)  # noqa: SLF001
@@ -235,16 +229,12 @@ async def test_async_request_retries_after_timeout() -> None:
     session = SimpleNamespace(
         request=MagicMock(side_effect=[TimeoutError(), _MockResponse({"code": 200})])
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock()  # noqa: SLF001
+    client = _build_client(session)
 
     result = await client._async_request("POST", "/test", {})  # noqa: SLF001
 
     assert result == {"code": 200}
     assert session.request.call_count == 2
-    client._async_get_ipv4_session.assert_not_awaited()
 
 
 async def test_async_request_falls_back_to_ipv4_after_shared_timeout() -> None:
@@ -254,16 +244,12 @@ async def test_async_request_falls_back_to_ipv4_after_shared_timeout() -> None:
     ipv4_session = SimpleNamespace(
         request=MagicMock(return_value=_MockResponse({"code": 200}))
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = shared_session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock(return_value=ipv4_session)  # noqa: SLF001
+    client = _build_client(shared_session, ipv4_session=ipv4_session)
 
     result = await client._async_request("POST", "/test", {})  # noqa: SLF001
 
     assert result == {"code": 200}
     assert shared_session.request.call_count == 2
-    client._async_get_ipv4_session.assert_awaited_once()
     assert ipv4_session.request.call_count == 1
 
 
@@ -279,10 +265,7 @@ async def test_async_request_raises_helpful_transport_error() -> None:
             )
         )
     )
-    client = AirbnkCloudClient.__new__(AirbnkCloudClient)
-    client._session = shared_session  # noqa: SLF001
-    client._ipv4_session = None  # noqa: SLF001
-    client._async_get_ipv4_session = AsyncMock(return_value=ipv4_session)  # noqa: SLF001
+    client = _build_client(shared_session, ipv4_session=ipv4_session)
 
     with pytest.raises(AirbnkCloudError) as err:
         await client._async_request(
