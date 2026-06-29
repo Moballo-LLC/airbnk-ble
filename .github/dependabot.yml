@@ -30,9 +30,6 @@ updates:
       timezone: "America/Los_Angeles"
     cooldown:
       default-days: 3
-      semver-patch-days: 3
-      semver-minor-days: 7
-      semver-major-days: 30
     groups:
       github-actions-routine:
         applies-to: "version-updates"

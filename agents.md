@@ -28,6 +28,9 @@
 
 ## Repo Workflow
 
+- Use the pull-request workflow for repository changes: create a branch, commit
+  there, push the branch, and open a PR. Do not commit or push directly to
+  `main` unless the user explicitly asks for a direct main-branch change.
 - Keep the repo HACS-ready: `hacs.json`, CI, Hassfest, and secret scanning should continue to pass.
 - Keep custom-integration manifests limited to requirements that are not already bundled by Home Assistant Core.
 - Update tests with behavior changes; protocol, config flow, and diagnostics coverage are all important here.
