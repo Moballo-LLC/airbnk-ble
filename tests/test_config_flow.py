@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -406,11 +407,30 @@ def test_manifest_bluetooth_matchers_cover_vendor_and_service_uuid() -> None:
     } in bluetooth_matchers
 
 
+def test_pyairbnk_requirement_matches_manifest_pin() -> None:
+    """Keep the pip-visible pyairbnk pin aligned with the HA manifest."""
+
+    root = Path(__file__).resolve().parents[1]
+    manifest_requirement = next(
+        requirement
+        for requirement in _load_manifest()["requirements"]
+        if requirement.startswith("pyairbnk==")
+    )
+    test_requirement = next(
+        line.strip()
+        for line in (root / "requirements_test.txt")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.startswith("pyairbnk==")
+    )
+
+    assert manifest_requirement == test_requirement
+
+
 def _load_manifest() -> dict:
     """Load the integration manifest for metadata assertions."""
 
     import json
-    from pathlib import Path
 
     manifest_path = (
         Path(__file__).resolve().parents[1]
