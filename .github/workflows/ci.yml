@@ -29,7 +29,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements_test.txt
+          pip install --no-cache-dir -r requirements_test.txt
       - name: Compile Python sources
         run: python -m compileall -q custom_components tests
       - name: Diff check
@@ -52,7 +52,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements_test.txt
+          pip install --no-cache-dir -r requirements_test.txt
       - name: Run tests with coverage
         run: >
           pytest
