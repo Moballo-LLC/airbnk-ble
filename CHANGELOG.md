@@ -4,10 +4,11 @@
 
 ## 2.0.3 - 2026-06-29
 
-- Updated the Home Assistant runtime and test dependency pin to
-  `pyairbnk==1.1.0`.
-- Picked up the latest standalone communication-layer fixes from `pyairbnk`
-  while keeping the HACS integration package unchanged otherwise.
+- Updated the Home Assistant runtime and test dependency pin to `pyairbnk==1.1.0`.
+- Added the `pyairbnk` communication-layer support for the live-validated `M532`
+  model profile, including remote-lock command support.
+- Included the `pyairbnk` checksum-buffer type-check fix and its new release
+  consistency checks.
 
 ## 2.0.2 - 2026-04-23
 
