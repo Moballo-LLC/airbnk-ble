@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.0.3 - 2026-06-29
+
+- Updated the Home Assistant runtime and test dependency pin to
+  `pyairbnk==1.1.0`.
+- Picked up the latest standalone communication-layer fixes from `pyairbnk`
+  while keeping the HACS integration package unchanged otherwise.
+
 ## 2.0.2 - 2026-04-23
 
 - Switched `Airbnk BLE` from the temporary GitHub tag archive bridge to the
