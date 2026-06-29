@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.1.0 - 2026-06-29
+
+- Updated the Home Assistant runtime and test dependency pin to `pyairbnk==1.2.0`.
+- Added provisional `M521` communication-layer support from `pyairbnk`.
+- Added the new generic Airbnk fallback profile for newly observed lock models
+  that appear to use the shared Airbnk protocol.
+
 ## 2.0.3 - 2026-06-29
 
 - Updated the Home Assistant runtime and test dependency pin to `pyairbnk==1.1.0`.

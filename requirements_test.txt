@@ -1,4 +1,4 @@
-pyairbnk==1.1.0
+pyairbnk==1.2.0
 pytest
 pytest-asyncio
 pytest-cov

@@ -16,6 +16,8 @@
 
 - `B100` is the only live-validated model right now.
 - `M300`, `M500`, `M510`, `M530`, and `M531` are supported through shared protocol logic plus fixture coverage, but should not be documented as equally field-validated.
+- `M521` support is provisional, and generic Airbnk fallback support should be
+  described as experimental until live validation lands for specific models.
 
 ## Implementation Preferences
 
