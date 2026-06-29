@@ -20,6 +20,9 @@ and network environment.
 
 - `B100` is the only live-tested and validated model today.
 - `M300`, `M500`, `M510`, `M530`, and `M531` are included through shared protocol and fixture coverage, but should still be treated as community-validated until more live testing lands.
+- `M521` support is provisional, and newly observed Airbnk lock models may use
+  the generic fallback profile when they appear to follow the shared Airbnk
+  protocol.
 
 ## What You Need
 
@@ -217,6 +220,9 @@ This project builds on two streams of prior work:
 ## Support Scope
 
 Only the `B100` has been tested end to end against real hardware so far.
+Other supported models, provisional profiles, and generic fallback matches
+should be treated as community or experimental coverage until more live testing
+lands.
 
 ## Troubleshooting
 
