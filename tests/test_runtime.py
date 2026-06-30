@@ -119,6 +119,48 @@ async def test_runtime_rejects_lock_when_remote_lock_is_disabled(
     assert runtime.state.last_wire_operation is None
 
 
+async def test_runtime_rejects_unlock_when_remote_unlock_is_disabled(
+    hass: HomeAssistant,
+) -> None:
+    """Unlock overrides should reject unlock commands before BLE activity."""
+
+    profile = get_model_profile("B100")
+    bootstrap = BootstrapData(
+        lock_sn="B100LOCK00000001",
+        lock_model="B100",
+        profile=profile.key,
+        manufacturer_key=b"0123456789ABCDEF",
+        binding_key=b"FEDCBA9876543210",
+    )
+    entry = MockConfigEntry(
+        domain="airbnk_ble",
+        title="Front Gate",
+        data=build_entry_data(
+            mac_address="AA:BB:CC:DD:EE:FF",
+            bootstrap=bootstrap,
+            battery_profile=[
+                {"voltage": 2.3, "percent": 0.0},
+                {"voltage": 2.5, "percent": 30.0},
+                {"voltage": 2.6, "percent": 60.0},
+                {"voltage": 2.9, "percent": 100.0},
+            ],
+        ),
+        options=build_entry_options(
+            name="Front Gate",
+            lock_model="B100",
+            supports_remote_unlock=False,
+        ),
+    )
+    runtime = AirbnkLockRuntime(hass, entry, bootstrap)
+    runtime.state.lock_events = 5
+
+    with pytest.raises(HomeAssistantError, match="Remote unlocking is not supported"):
+        await runtime.async_unlock()
+
+    assert runtime.state.last_requested_operation == OPERATION_UNLOCK
+    assert runtime.state.last_wire_operation is None
+
+
 async def test_runtime_requires_advert_before_command(
     hass: HomeAssistant,
 ) -> None:

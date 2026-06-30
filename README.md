@@ -192,6 +192,8 @@ If commands are slow, fail, or the state does not update reliably, the problem i
 ## Features
 
 - Native `lock` entity with `open` support
+- Optional per-lock `cover` entity for open/close control surfaces
+- Per-lock overrides for remote lock and unlock command support
 - Bluetooth discovery support for matching lock adverts to setup flows
 - Per-lock config entries
 - Arbitrary battery interpolation profiles stored as voltage/percent breakpoints

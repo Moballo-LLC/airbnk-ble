@@ -8,6 +8,7 @@ DOMAIN = "airbnk_ble"
 
 PLATFORMS: list[Platform] = [
     Platform.LOCK,
+    Platform.COVER,
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
 ]
@@ -19,6 +20,7 @@ CONF_COMMAND_TIMEOUT = "command_timeout"
 CONF_CONNECTIVITY_PROBE_INTERVAL = "connectivity_probe_interval"
 CONF_DISCOVERED_ADDRESS = "discovered_address"
 CONF_HARDWARE_VERSION = "hardware_version"
+CONF_EXPOSE_COVER = "expose_cover"
 CONF_LOCK_ICON = "lock_icon"
 CONF_LOCK_MODEL = "lock_model"
 CONF_LOCK_SN = "lock_sn"
@@ -30,6 +32,7 @@ CONF_REVERSE_COMMANDS = "reverse_commands"
 CONF_RETRY_COUNT = "retry_count"
 CONF_SETUP_MODE = "setup_mode"
 CONF_SUPPORTS_REMOTE_LOCK = "supports_remote_lock"
+CONF_SUPPORTS_REMOTE_UNLOCK = "supports_remote_unlock"
 CONF_UNAVAILABLE_AFTER = "unavailable_after"
 CONF_VOLTAGE_THRESHOLDS = "voltage_thresholds"
 
@@ -39,7 +42,9 @@ DEFAULT_CONNECTIVITY_PROBE_INTERVAL = 0
 DEFAULT_LOCK_ICON = ""
 DEFAULT_RETRY_COUNT = 3
 DEFAULT_REVERSE_COMMANDS = False
+DEFAULT_EXPOSE_COVER = False
 DEFAULT_SUPPORTS_REMOTE_LOCK = False
+DEFAULT_SUPPORTS_REMOTE_UNLOCK = True
 DEFAULT_UNAVAILABLE_AFTER = 60
 
 SETUP_MODE_CLOUD = "cloud"

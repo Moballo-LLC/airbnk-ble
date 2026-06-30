@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added per-lock advanced options to override remote lock/unlock command
+  support and optionally expose a cover entity whose open/close services map to
+  unlock/lock commands.
+
 ## 2.1.0 - 2026-06-29
 
 - Updated the Home Assistant runtime and test dependency pin to `pyairbnk==1.2.0`.

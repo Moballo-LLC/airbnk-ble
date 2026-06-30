@@ -6,10 +6,11 @@ import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
 from homeassistant.const import EntityCategory
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.airbnk_ble import binary_sensor, lock, sensor
+from custom_components.airbnk_ble import binary_sensor, cover, lock, sensor
 from custom_components.airbnk_ble.const import DOMAIN, LOCK_STATE_LOCKED
 
 
@@ -53,6 +54,8 @@ def _build_runtime():
         device_info={"identifiers": {(DOMAIN, "B100LOCK00000001")}},
         state=state,
         supports_remote_lock=False,
+        supports_remote_unlock=True,
+        expose_cover=False,
         connectivity_probe_interval=300,
         has_advertisement=True,
         last_advert_age_seconds=2.4,
@@ -87,6 +90,22 @@ async def test_platform_setup_creates_expected_entities() -> None:
         lambda entities: added_lock.extend(entities),
     )
     assert len(added_lock) == 1
+
+    added_cover = []
+    await cover.async_setup_entry(
+        None,
+        entry,
+        lambda entities: added_cover.extend(entities),
+    )
+    assert len(added_cover) == 0
+
+    runtime.expose_cover = True
+    await cover.async_setup_entry(
+        None,
+        entry,
+        lambda entities: added_cover.extend(entities),
+    )
+    assert len(added_cover) == 1
 
     added_sensor = []
     await sensor.async_setup_entry(
@@ -156,6 +175,7 @@ async def test_entities_expose_runtime_state_and_commands() -> None:
     assert lock_entity.is_locked is True
     assert lock_entity.icon == "mdi:lock-outline"
     assert lock_entity.extra_state_attributes["remote_lock_supported"] is False
+    assert lock_entity.extra_state_attributes["remote_unlock_supported"] is True
     assert lock_entity.extra_state_attributes["restored_until_first_advert"] is True
     assert lock_entity.extra_state_attributes["state_is_stale"] is True
 
@@ -166,6 +186,31 @@ async def test_entities_expose_runtime_state_and_commands() -> None:
     runtime.async_lock.assert_awaited_once()
     runtime.async_unlock.assert_awaited_once()
     runtime.async_open.assert_awaited_once()
+
+
+async def test_cover_entity_maps_open_close_to_lock_commands() -> None:
+    """Optional cover entity should expose cover semantics over lock commands."""
+
+    runtime = _build_runtime()
+    runtime.supports_remote_lock = True
+    cover_entity = cover.AirbnkBleCover(runtime)
+
+    assert cover_entity.available is True
+    assert cover_entity.device_class == CoverDeviceClass.DOOR
+    assert cover_entity.supported_features == (
+        CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
+    )
+    assert cover_entity.is_closed is True
+    assert cover_entity.current_cover_position == 0
+
+    await cover_entity.async_open_cover()
+    await cover_entity.async_close_cover()
+
+    runtime.async_open.assert_awaited_once()
+    runtime.async_lock.assert_awaited_once()
+
+    runtime.supports_remote_unlock = False
+    assert cover_entity.supported_features == CoverEntityFeature.CLOSE
 
 
 async def test_lock_entity_supports_mailbox_and_custom_icons() -> None:

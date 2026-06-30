@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from custom_components.airbnk_ble.airbnk import (
     battery_profile_from_legacy_thresholds,
     build_entry_data,
@@ -151,6 +154,8 @@ def test_entry_options_prefer_options_but_fall_back_to_legacy_data() -> None:
             "lock_icon": "mdi:mailbox-up-outline",
             "reverse_commands": True,
             "supports_remote_lock": True,
+            "supports_remote_unlock": False,
+            "expose_cover": True,
             "retry_count": 3,
             "command_timeout": 20,
             "connectivity_probe_interval": 10,
@@ -163,6 +168,8 @@ def test_entry_options_prefer_options_but_fall_back_to_legacy_data() -> None:
     assert normalized["retry_count"] == 5
     assert normalized["reverse_commands"] is True
     assert normalized["supports_remote_lock"] is True
+    assert normalized["supports_remote_unlock"] is False
+    assert normalized["expose_cover"] is True
     assert normalized["command_timeout"] == 20
     assert normalized["connectivity_probe_interval"] == 10
     assert normalized["unavailable_after"] == 120
@@ -180,7 +187,46 @@ def test_build_entry_options_normalizes_defaults_for_model() -> None:
     assert options["lock_icon"] == ""
     assert options["reverse_commands"] is False
     assert options["supports_remote_lock"] is False
+    assert options["supports_remote_unlock"] is True
+    assert options["expose_cover"] is False
     assert options["retry_count"] == 3
+
+
+def test_entry_options_use_matching_profile_capability_defaults() -> None:
+    """pyairbnk profile capability fields should drive default options."""
+
+    profile = SimpleNamespace(
+        supports_remote_lock=True,
+        supports_remote_unlock=False,
+    )
+
+    with patch(
+        "custom_components.airbnk_ble.airbnk.get_model_profile",
+        return_value=profile,
+    ):
+        options = build_entry_options(
+            name="Front Gate",
+            lock_model="M532",
+        )
+
+    assert options["supports_remote_lock"] is True
+    assert options["supports_remote_unlock"] is False
+
+
+def test_build_entry_options_normalizes_capability_overrides() -> None:
+    """Capability overrides should stay in user-tunable entry options."""
+
+    options = build_entry_options(
+        name="Front Gate",
+        lock_model="B100",
+        supports_remote_lock=True,
+        supports_remote_unlock=False,
+        expose_cover=True,
+    )
+
+    assert options["supports_remote_lock"] is True
+    assert options["supports_remote_unlock"] is False
+    assert options["expose_cover"] is True
 
 
 def test_build_entry_options_normalizes_custom_icon() -> None:
@@ -193,6 +239,7 @@ def test_build_entry_options_normalizes_custom_icon() -> None:
     )
 
     assert options["lock_icon"] == "mdi:mailbox-up-outline"
+
 
 def test_validate_entry_options_rejects_invalid_custom_icon() -> None:
     """Only valid mdi icons should be accepted for the optional custom icon."""

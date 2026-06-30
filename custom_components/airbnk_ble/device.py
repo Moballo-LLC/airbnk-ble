@@ -37,12 +37,14 @@ from .const import (
     CONF_BATTERY_PROFILE,
     CONF_COMMAND_TIMEOUT,
     CONF_CONNECTIVITY_PROBE_INTERVAL,
+    CONF_EXPOSE_COVER,
     CONF_LOCK_ICON,
     CONF_LOCK_SN,
     CONF_MAC_ADDRESS,
     CONF_RETRY_COUNT,
     CONF_REVERSE_COMMANDS,
     CONF_SUPPORTS_REMOTE_LOCK,
+    CONF_SUPPORTS_REMOTE_UNLOCK,
     CONF_UNAVAILABLE_AFTER,
     DOMAIN,
     LOCK_STATE_JAMMED,
@@ -130,6 +132,8 @@ class AirbnkLockRuntime:
         self.lock_icon = str(options[CONF_LOCK_ICON])
         self.reverse_commands = bool(options[CONF_REVERSE_COMMANDS])
         self.supports_remote_lock = bool(options[CONF_SUPPORTS_REMOTE_LOCK])
+        self.supports_remote_unlock = bool(options[CONF_SUPPORTS_REMOTE_UNLOCK])
+        self.expose_cover = bool(options[CONF_EXPOSE_COVER])
         self.retry_count = int(options[CONF_RETRY_COUNT])
         self.command_timeout = int(options[CONF_COMMAND_TIMEOUT])
         self.connectivity_probe_interval = int(
@@ -378,20 +382,21 @@ class AirbnkLockRuntime:
                 f"{self.address}; lock counter is unknown"
             )
 
-        wire_operation = self._wire_operation_for(requested_operation)
-        if requested_operation == OPERATION_LOCK and not self.supports_remote_lock:
+        unsupported_error = self._unsupported_operation_error(requested_operation)
+        if unsupported_error is not None:
             self.state.last_requested_operation = requested_operation
             self.state.last_wire_operation = None
-            self.state.last_error = (
-                "Remote locking is not supported for this Airbnk profile."
-            )
+            self.state.last_error = unsupported_error
             _LOGGER.warning(
-                "Rejected remote lock command for %s because this Airbnk "
-                "profile is configured as unlock-only",
+                "Rejected remote %s command for %s because this Airbnk "
+                "profile is configured without that capability",
+                self._operation_name(requested_operation),
                 self.address,
             )
             self._notify_callbacks()
             raise HomeAssistantError(self.state.last_error)
+
+        wire_operation = self._wire_operation_for(requested_operation)
 
         async with self._command_lock:
             self._operation = (
@@ -674,6 +679,18 @@ class AirbnkLockRuntime:
         if requested_operation == OPERATION_UNLOCK:
             return OPERATION_LOCK
         return requested_operation
+
+    def _unsupported_operation_error(self, requested_operation: int) -> str | None:
+        """Return the user-facing error for a disabled operation, if any."""
+
+        if requested_operation == OPERATION_LOCK and not self.supports_remote_lock:
+            return "Remote locking is not supported for this Airbnk profile."
+        if (
+            requested_operation == OPERATION_UNLOCK
+            and not self.supports_remote_unlock
+        ):
+            return "Remote unlocking is not supported for this Airbnk profile."
+        return None
 
     def _log_command_timing(
         self,
