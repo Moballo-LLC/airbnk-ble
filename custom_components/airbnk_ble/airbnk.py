@@ -59,6 +59,7 @@ from .const import (
     DEFAULT_NAME,
     DEFAULT_RETRY_COUNT,
     DEFAULT_REVERSE_COMMANDS,
+    DEFAULT_SUPPORTS_REMOTE_LOCK,
     DEFAULT_SUPPORTS_REMOTE_UNLOCK,
     DEFAULT_UNAVAILABLE_AFTER,
 )
@@ -81,6 +82,17 @@ def normalize_lock_icon(value: Any) -> str:
         raise AirbnkProtocolError("lock_icon must be a valid mdi: icon")
 
     return icon
+
+
+def model_profile_capability_default(
+    model_profile: Any,
+    capability: str,
+    fallback: bool,
+) -> bool:
+    """Return a boolean capability default exposed by a pyairbnk profile."""
+
+    value = getattr(model_profile, capability, fallback)
+    return value if isinstance(value, bool) else fallback
 
 
 def build_entry_data(
@@ -130,11 +142,19 @@ def validate_entry_options(
     elif legacy_data is not None and CONF_SUPPORTS_REMOTE_LOCK in legacy_data:
         supports_remote_lock_value = legacy_data[CONF_SUPPORTS_REMOTE_LOCK]
     else:
-        supports_remote_lock_value = model_profile.supports_remote_lock
+        supports_remote_lock_value = model_profile_capability_default(
+            model_profile,
+            CONF_SUPPORTS_REMOTE_LOCK,
+            DEFAULT_SUPPORTS_REMOTE_LOCK,
+        )
 
     supports_remote_unlock_value = _value(
         CONF_SUPPORTS_REMOTE_UNLOCK,
-        DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+        model_profile_capability_default(
+            model_profile,
+            CONF_SUPPORTS_REMOTE_UNLOCK,
+            DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+        ),
     )
     expose_cover_value = _value(CONF_EXPOSE_COVER, DEFAULT_EXPOSE_COVER)
 

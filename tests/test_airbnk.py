@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from custom_components.airbnk_ble.airbnk import (
     battery_profile_from_legacy_thresholds,
     build_entry_data,
@@ -187,6 +190,27 @@ def test_build_entry_options_normalizes_defaults_for_model() -> None:
     assert options["supports_remote_unlock"] is True
     assert options["expose_cover"] is False
     assert options["retry_count"] == 3
+
+
+def test_entry_options_use_matching_profile_capability_defaults() -> None:
+    """pyairbnk profile capability fields should drive default options."""
+
+    profile = SimpleNamespace(
+        supports_remote_lock=True,
+        supports_remote_unlock=False,
+    )
+
+    with patch(
+        "custom_components.airbnk_ble.airbnk.get_model_profile",
+        return_value=profile,
+    ):
+        options = build_entry_options(
+            name="Front Gate",
+            lock_model="M532",
+        )
+
+    assert options["supports_remote_lock"] is True
+    assert options["supports_remote_unlock"] is False
 
 
 def test_build_entry_options_normalizes_capability_overrides() -> None:

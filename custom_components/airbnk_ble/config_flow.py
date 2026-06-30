@@ -23,6 +23,7 @@ from .airbnk import (
     build_entry_options,
     decrypt_bootstrap,
     extract_manufacturer_payload,
+    model_profile_capability_default,
     normalize_mac_address,
     parse_advertisement_data,
     serial_numbers_match,
@@ -59,6 +60,7 @@ from .const import (
     DEFAULT_NAME,
     DEFAULT_RETRY_COUNT,
     DEFAULT_REVERSE_COMMANDS,
+    DEFAULT_SUPPORTS_REMOTE_LOCK,
     DEFAULT_SUPPORTS_REMOTE_UNLOCK,
     DEFAULT_UNAVAILABLE_AFTER,
     DISCOVERED_ADDRESS_MANUAL,
@@ -814,6 +816,16 @@ def _confirm_lock_schema(
 
     user_input = user_input or {}
     model_profile = MODEL_PROFILE_BY_KEY[profile_key]
+    default_supports_remote_lock = model_profile_capability_default(
+        model_profile,
+        CONF_SUPPORTS_REMOTE_LOCK,
+        DEFAULT_SUPPORTS_REMOTE_LOCK,
+    )
+    default_supports_remote_unlock = model_profile_capability_default(
+        model_profile,
+        CONF_SUPPORTS_REMOTE_UNLOCK,
+        DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+    )
 
     schema: dict[Any, Any] = {
         vol.Required(
@@ -863,14 +875,14 @@ def _confirm_lock_schema(
                 CONF_SUPPORTS_REMOTE_LOCK,
                 default=user_input.get(
                     CONF_SUPPORTS_REMOTE_LOCK,
-                    model_profile.supports_remote_lock,
+                    default_supports_remote_lock,
                 ),
             ): bool,
             vol.Optional(
                 CONF_SUPPORTS_REMOTE_UNLOCK,
                 default=user_input.get(
                     CONF_SUPPORTS_REMOTE_UNLOCK,
-                    DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+                    default_supports_remote_unlock,
                 ),
             ): bool,
             vol.Optional(
