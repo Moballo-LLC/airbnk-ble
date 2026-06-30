@@ -6,6 +6,7 @@ Local Bluetooth control for supported Airbnk / WeHere smart locks in Home Assist
 - Works with supported locks and accounts branded as Airbnk or WeHere
 - Supports BLE auto-discovery when Home Assistant can see a connectable Airbnk or WeHere lock
 - Local runtime operation over Home Assistant Bluetooth
+- Per-lock options for Home Assistant lock/unlock control and optional cover entity exposure
 - Cloud-assisted bootstrap acquisition during setup or refresh
 - Manual bootstrap path for advanced or recovery use
 - HACS custom integration packaging

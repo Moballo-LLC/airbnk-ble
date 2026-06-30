@@ -684,12 +684,23 @@ class AirbnkLockRuntime:
         """Return the user-facing error for a disabled operation, if any."""
 
         if requested_operation == OPERATION_LOCK and not self.supports_remote_lock:
-            return "Remote locking is not supported for this Airbnk profile."
+            return (
+                "The Lock command is turned off for this Airbnk BLE entry. Go to "
+                "Settings > Devices & Services > Airbnk BLE > Configure and "
+                "turn on 'Enable Lock command' if this device supports "
+                "Bluetooth locking."
+            )
         if (
             requested_operation == OPERATION_UNLOCK
             and not self.supports_remote_unlock
         ):
-            return "Remote unlocking is not supported for this Airbnk profile."
+            return (
+                "The Unlock/Open command is turned off for this Airbnk BLE "
+                "entry. Go to Settings > Devices & Services > Airbnk BLE > "
+                "Configure and "
+                "turn on 'Enable Unlock/Open command' if this device supports "
+                "Bluetooth unlocking or latch release."
+            )
         return None
 
     def _log_command_timing(
