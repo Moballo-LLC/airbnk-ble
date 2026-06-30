@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.1 - 2026-06-30
+
 - Clarified lock capability and optional cover wording in setup, options,
   runtime errors, and documentation so users know when to enable per-lock
   locking support.
