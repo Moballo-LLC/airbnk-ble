@@ -2,9 +2,14 @@
 
 ## Unreleased
 
+## 2.2.0 - 2026-06-30
+
 - Added per-lock advanced options to override remote lock/unlock command
   support and optionally expose a cover entity whose open/close services map to
   unlock/lock commands.
+- Default remote lock/unlock capability choices now flow from matching
+  `pyairbnk` profile fields when those fields exist, while preserving
+  compatibility with the current `pyairbnk==1.2.0` profile shape.
 
 ## 2.1.0 - 2026-06-29
 
