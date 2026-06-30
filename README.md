@@ -189,6 +189,20 @@ After setup finishes:
 
 If commands are slow, fail, or the state does not update reliably, the problem is usually BLE coverage or interference rather than the setup flow.
 
+### Locking and Cover Options
+
+Some Airbnk models default to unlock/open-only until their locking behavior is
+validated. If Home Assistant says the Lock command is turned off, open the
+configured `Airbnk BLE` entry under `Settings -> Devices & Services`, choose
+`Configure`, and turn on `Enable Lock command` if your hardware supports
+Bluetooth locking and pressing `Lock` should lock it.
+
+The same options screen also includes:
+
+- `Enable Unlock/Open command`: leave this on if pressing `Unlock` or `Open` should unlock or release the latch.
+- `Add a Cover entity for Open/Close`: adds a `cover` entity for dashboards or automations that expect open/close controls. Cover `Open` uses the Unlock/Open command. Cover `Close` uses the Lock command, so `Enable Lock command` must also be on.
+- `Swap lock and unlock commands`: use this only if your specific hardware acts reversed.
+
 ## Features
 
 - Native `lock` entity with `open` support

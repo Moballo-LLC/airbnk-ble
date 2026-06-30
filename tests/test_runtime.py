@@ -80,7 +80,7 @@ async def test_runtime_applies_advertisement_and_status_updates(
 async def test_runtime_rejects_lock_when_remote_lock_is_disabled(
     hass: HomeAssistant,
 ) -> None:
-    """Unlock-only profiles should reject remote lock commands immediately."""
+    """Unlock-only profiles should reject lock commands with a setup hint."""
 
     profile = get_model_profile("B100")
     bootstrap = BootstrapData(
@@ -112,7 +112,10 @@ async def test_runtime_rejects_lock_when_remote_lock_is_disabled(
     runtime = AirbnkLockRuntime(hass, entry, bootstrap)
     runtime.state.lock_events = 5
 
-    with pytest.raises(HomeAssistantError, match="Remote locking is not supported"):
+    with pytest.raises(
+        HomeAssistantError,
+        match="Enable Lock command",
+    ):
         await runtime.async_lock()
 
     assert runtime.state.last_requested_operation == OPERATION_LOCK
@@ -154,7 +157,10 @@ async def test_runtime_rejects_unlock_when_remote_unlock_is_disabled(
     runtime = AirbnkLockRuntime(hass, entry, bootstrap)
     runtime.state.lock_events = 5
 
-    with pytest.raises(HomeAssistantError, match="Remote unlocking is not supported"):
+    with pytest.raises(
+        HomeAssistantError,
+        match="Enable Unlock/Open command",
+    ):
         await runtime.async_unlock()
 
     assert runtime.state.last_requested_operation == OPERATION_UNLOCK
