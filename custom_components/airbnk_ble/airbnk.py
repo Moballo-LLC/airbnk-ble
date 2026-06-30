@@ -37,6 +37,7 @@ from .const import (
     CONF_BINDING_KEY,
     CONF_COMMAND_TIMEOUT,
     CONF_CONNECTIVITY_PROBE_INTERVAL,
+    CONF_EXPOSE_COVER,
     CONF_HARDWARE_VERSION,
     CONF_LOCK_ICON,
     CONF_LOCK_MODEL,
@@ -48,14 +49,17 @@ from .const import (
     CONF_RETRY_COUNT,
     CONF_REVERSE_COMMANDS,
     CONF_SUPPORTS_REMOTE_LOCK,
+    CONF_SUPPORTS_REMOTE_UNLOCK,
     CONF_UNAVAILABLE_AFTER,
     CONF_VOLTAGE_THRESHOLDS,
     DEFAULT_COMMAND_TIMEOUT,
     DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
+    DEFAULT_EXPOSE_COVER,
     DEFAULT_LOCK_ICON,
     DEFAULT_NAME,
     DEFAULT_RETRY_COUNT,
     DEFAULT_REVERSE_COMMANDS,
+    DEFAULT_SUPPORTS_REMOTE_UNLOCK,
     DEFAULT_UNAVAILABLE_AFTER,
 )
 from .profiles import get_model_profile
@@ -128,6 +132,12 @@ def validate_entry_options(
     else:
         supports_remote_lock_value = model_profile.supports_remote_lock
 
+    supports_remote_unlock_value = _value(
+        CONF_SUPPORTS_REMOTE_UNLOCK,
+        DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+    )
+    expose_cover_value = _value(CONF_EXPOSE_COVER, DEFAULT_EXPOSE_COVER)
+
     retry_count = int(_value(CONF_RETRY_COUNT, DEFAULT_RETRY_COUNT))
     command_timeout = int(_value(CONF_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT))
     connectivity_probe_interval = int(
@@ -145,6 +155,8 @@ def validate_entry_options(
             _value(CONF_REVERSE_COMMANDS, DEFAULT_REVERSE_COMMANDS)
         ),
         CONF_SUPPORTS_REMOTE_LOCK: bool(supports_remote_lock_value),
+        CONF_SUPPORTS_REMOTE_UNLOCK: bool(supports_remote_unlock_value),
+        CONF_EXPOSE_COVER: bool(expose_cover_value),
         CONF_RETRY_COUNT: retry_count,
         CONF_COMMAND_TIMEOUT: command_timeout,
         CONF_CONNECTIVITY_PROBE_INTERVAL: connectivity_probe_interval,
@@ -170,6 +182,8 @@ def build_entry_options(
     lock_icon: str | None = DEFAULT_LOCK_ICON,
     reverse_commands: bool = DEFAULT_REVERSE_COMMANDS,
     supports_remote_lock: bool | None = None,
+    supports_remote_unlock: bool | None = None,
+    expose_cover: bool = DEFAULT_EXPOSE_COVER,
     retry_count: int = DEFAULT_RETRY_COUNT,
     command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
     connectivity_probe_interval: int = DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
@@ -181,6 +195,7 @@ def build_entry_options(
         CONF_NAME: (name or DEFAULT_NAME).strip() or DEFAULT_NAME,
         CONF_LOCK_ICON: normalize_lock_icon(lock_icon),
         CONF_REVERSE_COMMANDS: bool(reverse_commands),
+        CONF_EXPOSE_COVER: bool(expose_cover),
         CONF_RETRY_COUNT: int(retry_count),
         CONF_COMMAND_TIMEOUT: int(command_timeout),
         CONF_CONNECTIVITY_PROBE_INTERVAL: int(connectivity_probe_interval),
@@ -188,6 +203,8 @@ def build_entry_options(
     }
     if supports_remote_lock is not None:
         raw_options[CONF_SUPPORTS_REMOTE_LOCK] = bool(supports_remote_lock)
+    if supports_remote_unlock is not None:
+        raw_options[CONF_SUPPORTS_REMOTE_UNLOCK] = bool(supports_remote_unlock)
     return validate_entry_options(raw_options, lock_model=lock_model)
 
 

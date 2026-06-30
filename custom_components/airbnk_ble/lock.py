@@ -56,11 +56,15 @@ class AirbnkBleLock(AirbnkBaseEntity, LockEntity, RestoreEntity):
 
     _attr_name = "Lock"
     _attr_has_entity_name = True
-    _attr_supported_features = LockEntityFeature.OPEN
 
     def __init__(self, runtime) -> None:
         super().__init__(runtime)
         self._attr_unique_id = f"{runtime.lock_sn}_lock"
+        self._attr_supported_features = (
+            LockEntityFeature.OPEN
+            if runtime.supports_remote_unlock
+            else LockEntityFeature(0)
+        )
 
     async def async_added_to_hass(self) -> None:
         """Restore the last known lock state until fresh BLE data arrives."""
@@ -125,6 +129,7 @@ class AirbnkBleLock(AirbnkBaseEntity, LockEntity, RestoreEntity):
         if self._runtime.state.last_source:
             attrs["state_source"] = self._runtime.state.last_source
         attrs["remote_lock_supported"] = self._runtime.supports_remote_lock
+        attrs["remote_unlock_supported"] = self._runtime.supports_remote_unlock
         if self._runtime.state.firmware_version:
             attrs["firmware_version"] = self._runtime.state.firmware_version
         if self._runtime.state.board_model is not None:

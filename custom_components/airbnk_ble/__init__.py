@@ -9,7 +9,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 
 from .airbnk import validate_entry
-from .const import CONF_LOCK_SN, CONF_MAC_ADDRESS, DOMAIN, PLATFORMS
+from .const import CONF_EXPOSE_COVER, CONF_LOCK_SN, CONF_MAC_ADDRESS, DOMAIN, PLATFORMS
 from .device import AirbnkLockRuntime
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -52,7 +52,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             options=normalized_options,
             title=normalized_options["name"],
         )
-    _async_remove_obsolete_entities(hass, entry, str(normalized_data[CONF_LOCK_SN]))
+    _async_remove_obsolete_entities(
+        hass,
+        entry,
+        str(normalized_data[CONF_LOCK_SN]),
+        expose_cover=bool(normalized_options[CONF_EXPOSE_COVER]),
+    )
 
     runtime = AirbnkLockRuntime(hass, entry, bootstrap)
     entry.runtime_data = runtime
@@ -78,11 +83,15 @@ def _async_remove_obsolete_entities(
     hass: HomeAssistant,
     entry: ConfigEntry,
     lock_sn: str,
+    *,
+    expose_cover: bool,
 ) -> None:
     """Remove retired debug entities from the entity registry."""
 
     registry = er.async_get(hass)
     obsolete_unique_ids = {f"{lock_sn}_{key}" for key in _OBSOLETE_ENTITY_KEYS}
+    if not expose_cover:
+        obsolete_unique_ids.add(f"{lock_sn}_cover")
     for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
         if registry_entry.unique_id in obsolete_unique_ids:
             registry.async_remove(registry_entry.entity_id)

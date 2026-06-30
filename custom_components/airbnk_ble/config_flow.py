@@ -40,6 +40,7 @@ from .const import (
     CONF_COMMAND_TIMEOUT,
     CONF_CONNECTIVITY_PROBE_INTERVAL,
     CONF_DISCOVERED_ADDRESS,
+    CONF_EXPOSE_COVER,
     CONF_HARDWARE_VERSION,
     CONF_LOCK_ICON,
     CONF_LOCK_MODEL,
@@ -49,13 +50,16 @@ from .const import (
     CONF_RETRY_COUNT,
     CONF_REVERSE_COMMANDS,
     CONF_SUPPORTS_REMOTE_LOCK,
+    CONF_SUPPORTS_REMOTE_UNLOCK,
     CONF_UNAVAILABLE_AFTER,
     DEFAULT_COMMAND_TIMEOUT,
     DEFAULT_CONNECTIVITY_PROBE_INTERVAL,
+    DEFAULT_EXPOSE_COVER,
     DEFAULT_LOCK_ICON,
     DEFAULT_NAME,
     DEFAULT_RETRY_COUNT,
     DEFAULT_REVERSE_COMMANDS,
+    DEFAULT_SUPPORTS_REMOTE_UNLOCK,
     DEFAULT_UNAVAILABLE_AFTER,
     DISCOVERED_ADDRESS_MANUAL,
     DOMAIN,
@@ -352,6 +356,15 @@ class AirbnkBleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
                         supports_remote_lock=bool(
                             user_input[CONF_SUPPORTS_REMOTE_LOCK]
+                        ),
+                        supports_remote_unlock=bool(
+                            user_input.get(
+                                CONF_SUPPORTS_REMOTE_UNLOCK,
+                                DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+                            )
+                        ),
+                        expose_cover=bool(
+                            user_input.get(CONF_EXPOSE_COVER, DEFAULT_EXPOSE_COVER)
                         ),
                         retry_count=int(user_input[CONF_RETRY_COUNT]),
                         command_timeout=int(user_input[CONF_COMMAND_TIMEOUT]),
@@ -704,6 +717,15 @@ class AirbnkBleOptionsFlow(config_entries.OptionsFlowWithReload):
                     lock_icon=str(user_input.get(CONF_LOCK_ICON, "")).strip(),
                     reverse_commands=bool(user_input[CONF_REVERSE_COMMANDS]),
                     supports_remote_lock=bool(user_input[CONF_SUPPORTS_REMOTE_LOCK]),
+                    supports_remote_unlock=bool(
+                        user_input.get(
+                            CONF_SUPPORTS_REMOTE_UNLOCK,
+                            DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+                        )
+                    ),
+                    expose_cover=bool(
+                        user_input.get(CONF_EXPOSE_COVER, DEFAULT_EXPOSE_COVER)
+                    ),
                     retry_count=int(user_input[CONF_RETRY_COUNT]),
                     command_timeout=int(user_input[CONF_COMMAND_TIMEOUT]),
                     connectivity_probe_interval=int(
@@ -751,6 +773,14 @@ class AirbnkBleOptionsFlow(config_entries.OptionsFlowWithReload):
                 vol.Optional(
                     CONF_SUPPORTS_REMOTE_LOCK,
                     default=values[CONF_SUPPORTS_REMOTE_LOCK],
+                ): bool,
+                vol.Optional(
+                    CONF_SUPPORTS_REMOTE_UNLOCK,
+                    default=values[CONF_SUPPORTS_REMOTE_UNLOCK],
+                ): bool,
+                vol.Optional(
+                    CONF_EXPOSE_COVER,
+                    default=values[CONF_EXPOSE_COVER],
                 ): bool,
                 vol.Optional(
                     CONF_RETRY_COUNT,
@@ -835,6 +865,17 @@ def _confirm_lock_schema(
                     CONF_SUPPORTS_REMOTE_LOCK,
                     model_profile.supports_remote_lock,
                 ),
+            ): bool,
+            vol.Optional(
+                CONF_SUPPORTS_REMOTE_UNLOCK,
+                default=user_input.get(
+                    CONF_SUPPORTS_REMOTE_UNLOCK,
+                    DEFAULT_SUPPORTS_REMOTE_UNLOCK,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_EXPOSE_COVER,
+                default=user_input.get(CONF_EXPOSE_COVER, DEFAULT_EXPOSE_COVER),
             ): bool,
             vol.Optional(
                 CONF_RETRY_COUNT,

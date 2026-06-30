@@ -70,6 +70,8 @@ async def test_manual_flow_creates_entry_without_raw_bootstrap_secrets(
                 "mac_address": "AA:BB:CC:DD:EE:FF",
                 "reverse_commands": False,
                 "supports_remote_lock": False,
+                "supports_remote_unlock": True,
+                "expose_cover": False,
                 "retry_count": 3,
                 "command_timeout": 15,
                 "connectivity_probe_interval": 0,
@@ -82,6 +84,8 @@ async def test_manual_flow_creates_entry_without_raw_bootstrap_secrets(
         assert "name" not in result["data"]
         assert result["options"]["name"] == "Front Gate"
         assert result["options"]["lock_icon"] == "mdi:mailbox-up-outline"
+        assert result["options"]["supports_remote_unlock"] is True
+        assert result["options"]["expose_cover"] is False
 
 
 async def test_cloud_flow_prefers_matching_discovered_lock(
@@ -169,6 +173,8 @@ async def test_cloud_flow_prefers_matching_discovered_lock(
                 "mac_address": "",
                 "reverse_commands": False,
                 "supports_remote_lock": False,
+                "supports_remote_unlock": True,
+                "expose_cover": True,
                 "retry_count": 3,
                 "command_timeout": 15,
                 "connectivity_probe_interval": 0,
@@ -179,6 +185,7 @@ async def test_cloud_flow_prefers_matching_discovered_lock(
         assert result["data"][CONF_LOCK_SN] == fixture["lock_sn"]
         assert result["data"][CONF_MAC_ADDRESS] == "AA:BB:CC:DD:EE:FF"
         assert result["options"]["name"] == "Front Gate"
+        assert result["options"]["expose_cover"] is True
 
 
 async def test_bluetooth_discovery_prefills_manual_setup(
@@ -301,6 +308,8 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
             "lock_icon": "mdi:mailbox-up-outline",
             "reverse_commands": False,
             "supports_remote_lock": False,
+            "supports_remote_unlock": True,
+            "expose_cover": False,
             "retry_count": 3,
             "command_timeout": 15,
             "connectivity_probe_interval": 0,
@@ -367,6 +376,8 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
                 "lock_icon": "mdi:mailbox-up-outline",
                 "reverse_commands": True,
                 "supports_remote_lock": False,
+                "supports_remote_unlock": True,
+                "expose_cover": True,
                 "retry_count": 5,
                 "command_timeout": 20,
                 "connectivity_probe_interval": 30,
@@ -378,6 +389,8 @@ async def test_options_flow_updates_entry_options_without_touching_connection_da
     assert entry.data["mac_address"] == "AA:BB:CC:DD:EE:FF"
     assert entry.options["name"] == "Front Door"
     assert entry.options["lock_icon"] == "mdi:mailbox-up-outline"
+    assert entry.options["supports_remote_unlock"] is True
+    assert entry.options["expose_cover"] is True
     assert entry.options["retry_count"] == 5
     assert entry.title == "Front Door"
 

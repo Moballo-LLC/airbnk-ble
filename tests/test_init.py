@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -72,6 +72,8 @@ async def test_async_setup_entry_normalizes_legacy_entry_data(
     runtime_cls.assert_called_once()
     update_entry.assert_called_once()
     assert update_entry.call_args.kwargs["options"]["name"] == "Front Gate"
+    assert update_entry.call_args.kwargs["options"]["supports_remote_unlock"] is True
+    assert update_entry.call_args.kwargs["options"]["expose_cover"] is False
     assert entry.runtime_data is runtime
 
 
@@ -102,6 +104,8 @@ async def test_async_setup_entry_removes_retired_debug_entities(
             "lock_icon": "",
             "reverse_commands": False,
             "supports_remote_lock": False,
+            "supports_remote_unlock": True,
+            "expose_cover": False,
             "retry_count": 3,
             "command_timeout": 15,
             "connectivity_probe_interval": 0,
@@ -135,13 +139,20 @@ async def test_async_setup_entry_removes_retired_debug_entities(
                     unique_id=f"{fixture['lock_sn']}_battery",
                     entity_id="sensor.front_gate_battery",
                 ),
+                SimpleNamespace(
+                    unique_id=f"{fixture['lock_sn']}_cover",
+                    entity_id="cover.front_gate_cover",
+                ),
             ],
         ),
     ):
         assert await async_setup_entry(hass, entry) is True
 
-    registry.async_remove.assert_called_once_with(
-        "sensor.front_gate_advert_state_bits"
+    registry.async_remove.assert_has_calls(
+        [
+            call("sensor.front_gate_advert_state_bits"),
+            call("cover.front_gate_cover"),
+        ]
     )
 
 
